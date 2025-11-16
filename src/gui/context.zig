@@ -7,9 +7,9 @@ pub const GuiContext = struct {
     draw_list: DrawList,
     cursor_pos: CursorPosition,
 
-    pub fn init() GuiContext {
+    pub fn init(allocator: std.mem.Allocator) GuiContext {
         return GuiContext{
-            .draw_list = DrawList.init(),
+            .draw_list = DrawList.init(allocator),
             .cursor_pos = CursorPosition{ .x = 0, .y = 0 },
         };
     }
@@ -18,7 +18,11 @@ pub const GuiContext = struct {
         self.draw_list.clear();
     }
 
-    pub fn render(self: *GuiContext) void {
-        self.draw_list.flush();
+    // pub fn render(self: *GuiContext) void {
+    //     self.draw_list.flush();
+    // }
+
+    pub fn deinit(self: *GuiContext) void {
+        self.draw_list.deinit();
     }
 };

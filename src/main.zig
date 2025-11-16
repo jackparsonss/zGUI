@@ -1,10 +1,11 @@
 const std = @import("std");
+
+const button = @import("gui/widgets/button.zig").button;
+const GuiContext = @import("gui/context.zig").GuiContext;
+const input = @import("gui/input.zig");
 const c = @import("gui/c.zig");
 const glfw = c.glfw;
 const gl = c.glad;
-
-const input = @import("gui/input.zig");
-const GuiContext = @import("gui/context.zig").GuiContext;
 
 pub fn main() !void {
     if (glfw.glfwInit() == 0) {
@@ -33,16 +34,22 @@ pub fn main() !void {
         return;
     }
 
-    var gui = GuiContext.init();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var gui = GuiContext.init(allocator);
+    defer gui.deinit();
 
     gl.glClearColor(0.55, 0.55, 0.55, 1.0);
     while (glfw.glfwWindowShouldClose(window) == 0) {
         glfw.glfwPollEvents();
 
         input.updateInput(&gui, window);
+        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, .{ 0.7, 0.7, 0.7, 1.0 })) {}
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
-        gui.render();
+        // gui.render();
 
         glfw.glfwSwapBuffers(window);
     }
