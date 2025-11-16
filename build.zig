@@ -13,10 +13,16 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    const glfw_dependency = b.dependency("glfw_zig", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.linkLibrary(glfw_dependency.artifact("glfw"));
+
     exe.addIncludePath(.{ .cwd_relative = "/usr/include" });
 
     // Link system libraries (Linux examples). On macOS/Windows adjust accordingly.
-    exe.linkSystemLibrary("glfw");
+    // exe.linkSystemLibrary("glfw");
     // exe.linkSystemLibrary("m");
     // exe.linkSystemLibrary("dl");
     // exe.linkSystemLibrary("X11");
