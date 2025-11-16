@@ -19,15 +19,11 @@ pub fn build(b: *std.Build) void {
     });
     exe.root_module.linkLibrary(glfw_dependency.artifact("glfw"));
 
-    exe.addIncludePath(.{ .cwd_relative = "/usr/include" });
-
-    // Link system libraries (Linux examples). On macOS/Windows adjust accordingly.
-    // exe.linkSystemLibrary("glfw");
-    // exe.linkSystemLibrary("m");
-    // exe.linkSystemLibrary("dl");
-    // exe.linkSystemLibrary("X11");
-    // exe.linkSystemLibrary("pthread");
-    // exe.linkSystemLibrary("GL"); // On macOS replace with "OpenGL"
+    const glad_dependency = b.dependency("zig_glad", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.root_module.linkLibrary(glad_dependency.artifact("glad"));
 
     b.installArtifact(exe);
 
