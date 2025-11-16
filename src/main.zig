@@ -11,6 +11,7 @@ pub fn main() !void {
         std.debug.print("Failed to initialize GLFW\n", .{});
         return;
     }
+    // BUG: glfwTerminate causing panic when window closes
     // defer glfw.glfwTerminate();
 
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
