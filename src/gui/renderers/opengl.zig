@@ -94,9 +94,11 @@ fn createShader() u32 {
         \\
         \\uniform mat4 u_projection;
         \\
+        \\out vec2 vUV;
         \\out vec4 vColor;
         \\
         \\void main() {
+        \\    vUV = in_uv;
         \\    vColor = in_color;
         \\    gl_Position = u_projection * vec4(in_pos.xy, 0, 1);
         \\}
@@ -104,10 +106,16 @@ fn createShader() u32 {
 
     const fs_src =
         \\#version 330 core
+        \\in vec2 vUV;
         \\in vec4 vColor;
+        \\
+        \\uniform sampler2D uTexture;
+        \\
         \\out vec4 out_color;
+        \\
         \\void main() {
-        \\    out_color = vColor;
+        \\    float alpha = texture(uTexture, vUV).r;
+        \\    out_color = vec4(vColor.rgb, vColor.a * alpha);
         \\}
     ;
 
