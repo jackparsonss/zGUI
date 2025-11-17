@@ -6,4 +6,8 @@ pub const glad = @cImport({
     @cInclude("glad/glad.h");
 });
 
+pub const trueType = @cImport({
+    @cInclude("stb_truetype.h");
+});
+
 pub const Window = ?*glfw.GLFWwindow;

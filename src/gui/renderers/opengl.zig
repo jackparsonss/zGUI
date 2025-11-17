@@ -24,43 +24,65 @@ pub const GLRenderer = struct {
 
     pub fn render(self: *GLRenderer, dl: *DrawList, width: i32, height: i32) void {
         gl.glUseProgram(self.shader);
+        checkGlError("glUseProgram");
 
         gl.glViewport(0, 0, width, height);
+        checkGlError("glViewport");
 
         const loc = gl.glGetUniformLocation(self.shader, "u_projection");
+        checkGlError("glGetUniformLocation");
         var proj: [16]f32 = ortho(0, @floatFromInt(width), @floatFromInt(height), 0, -1, 1);
         gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, &proj);
+        checkGlError("glUniformMatrix4fv");
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo);
+        checkGlError("glBindBuffer vbo render");
         gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(dl.vertices.items.len * @sizeOf(Vertex)), dl.vertices.items.ptr, gl.GL_DYNAMIC_DRAW);
+        checkGlError("glBufferData vbo");
 
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ibo);
-        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(dl.indices.items.len * @sizeOf(Vertex)), dl.indices.items.ptr, gl.GL_DYNAMIC_DRAW);
+        checkGlError("glBindBuffer ibo render");
+        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(dl.indices.items.len * @sizeOf(u32)), dl.indices.items.ptr, gl.GL_DYNAMIC_DRAW);
+        checkGlError("glBufferData ibo");
 
         gl.glBindVertexArray(self.vao);
+        checkGlError("glBindVertexArray render");
         gl.glDrawElements(gl.GL_TRIANGLES, @intCast(dl.indices.items.len), gl.GL_UNSIGNED_INT, null);
+        checkGlError("glDrawElements");
     }
 };
 
 fn setupBuffers(r: *GLRenderer) void {
     gl.glGenVertexArrays(1, &r.vao);
+    checkGlError("glGenVertexArrays");
     gl.glGenBuffers(1, &r.vbo);
+    checkGlError("glGenBuffers vbo");
     gl.glGenBuffers(1, &r.ibo);
+    checkGlError("glGenBuffers ibo");
 
     gl.glBindVertexArray(r.vao);
+    checkGlError("glBindVertexArray");
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, r.vbo);
+    checkGlError("glBindBuffer vbo");
     gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, r.ibo);
+    checkGlError("glBindBuffer ibo");
 
     const stride = @sizeOf(Vertex);
 
     gl.glEnableVertexAttribArray(0);
+    checkGlError("glEnableVertexAttribArray 0");
     gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, @ptrFromInt(0));
+    checkGlError("glVertexAttribPointer 0");
 
     gl.glEnableVertexAttribArray(1);
+    checkGlError("glEnableVertexAttribArray 1");
     gl.glVertexAttribPointer(1, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, @ptrFromInt(8));
+    checkGlError("glVertexAttribPointer 1");
 
     gl.glEnableVertexAttribArray(2);
+    checkGlError("glEnableVertexAttribArray 2");
     gl.glVertexAttribPointer(2, 4, gl.GL_UNSIGNED_BYTE, gl.GL_TRUE, stride, @ptrFromInt(16));
+    checkGlError("glVertexAttribPointer 2");
 }
 
 fn createShader() u32 {
@@ -98,23 +120,75 @@ fn createShader() u32 {
     };
 
     const vs = gl.glCreateShader(gl.GL_VERTEX_SHADER);
+    checkGlError("glCreateShader VS");
     const fs = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
+    checkGlError("glCreateShader FS");
 
     gl.glShaderSource(vs, 1, &vs_ptrs, null);
+    checkGlError("glShaderSource VS");
     gl.glCompileShader(vs);
+    checkGlError("glCompileShader VS");
+
+    var success: i32 = 0;
+    gl.glGetShaderiv(vs, gl.GL_COMPILE_STATUS, &success);
+    if (success == 0) {
+        var log: [1024]u8 = undefined;
+        gl.glGetShaderInfoLog(vs, 1024, null, &log);
+        std.debug.print("Vertex shader compilation failed:\n{s}\n", .{log});
+    }
 
     gl.glShaderSource(fs, 1, &fs_ptrs, null);
+    checkGlError("glShaderSource FS");
     gl.glCompileShader(fs);
+    checkGlError("glCompileShader FS");
+
+    gl.glGetShaderiv(fs, gl.GL_COMPILE_STATUS, &success);
+    if (success == 0) {
+        var log: [1024]u8 = undefined;
+        gl.glGetShaderInfoLog(fs, 1024, null, &log);
+        std.debug.print("Fragment shader compilation failed:\n{s}\n", .{log});
+    }
 
     const prog = gl.glCreateProgram();
+    checkGlError("glCreateProgram");
     gl.glAttachShader(prog, vs);
+    checkGlError("glAttachShader VS");
     gl.glAttachShader(prog, fs);
+    checkGlError("glAttachShader FS");
     gl.glLinkProgram(prog);
+    checkGlError("glLinkProgram");
+
+    gl.glGetProgramiv(prog, gl.GL_LINK_STATUS, &success);
+    if (success == 0) {
+        var log: [1024]u8 = undefined;
+        gl.glGetProgramInfoLog(prog, 1024, null, &log);
+        std.debug.print("Shader program linking failed:\n{s}\n", .{log});
+    }
 
     gl.glDeleteShader(vs);
+    checkGlError("glDeleteShader VS");
     gl.glDeleteShader(fs);
+    checkGlError("glDeleteShader FS");
 
     return prog;
+}
+
+pub fn checkGlError(location: []const u8) void {
+    var e = gl.glGetError();
+    while (e != gl.GL_NO_ERROR) {
+        const error_str = switch (e) {
+            gl.GL_INVALID_ENUM => "GL_INVALID_ENUM",
+            gl.GL_INVALID_VALUE => "GL_INVALID_VALUE",
+            gl.GL_INVALID_OPERATION => "GL_INVALID_OPERATION",
+            gl.GL_STACK_OVERFLOW => "GL_STACK_OVERFLOW",
+            gl.GL_STACK_UNDERFLOW => "GL_STACK_UNDERFLOW",
+            gl.GL_OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
+            gl.GL_INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEFRAMEBUFFER_OPERATION",
+            else => "UNKNOWN_GL_ERROR",
+        };
+        std.debug.print("OpenGL Error at {s}: {s}\n", .{ location, error_str });
+        e = gl.glGetError();
+    }
 }
 
 // orthograpic projection

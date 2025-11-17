@@ -1,6 +1,7 @@
 const std = @import("std");
 const glad = @import("c.zig").glad;
 const shapes = @import("shapes.zig");
+const Font = @import("text/font.zig").Font;
 
 pub const DrawList = struct {
     allocator: std.mem.Allocator,
@@ -44,6 +45,68 @@ pub const DrawList = struct {
             base, base + 1, base + 2,
             base, base + 2, base + 3,
         });
+    }
+
+    pub fn addRectUV(
+        self: *DrawList,
+        rect: shapes.Rect,
+        uv_min: [2]f32,
+        uv_max: [2]f32,
+        color: shapes.Color,
+    ) !void {
+        const x1 = rect.x;
+        const y1 = rect.y;
+        const x2 = rect.x + rect.w;
+        const y2 = rect.y + rect.h;
+
+        const uv1 = uv_min[0];
+        const v1 = uv_min[1];
+        const uv2 = uv_max[0];
+        const v2 = uv_max[1];
+
+        const vtx = [_]shapes.Vertex{
+            .{ .pos = .{ x1, y1 }, .uv = .{ uv1, v1 }, .color = color },
+            .{ .pos = .{ x2, y1 }, .uv = .{ uv2, v1 }, .color = color },
+            .{ .pos = .{ x2, y2 }, .uv = .{ uv2, v2 }, .color = color },
+            .{ .pos = .{ x1, y2 }, .uv = .{ uv1, v2 }, .color = color },
+        };
+
+        const base: u32 = @intCast(self.vertices.items.len);
+        try self.vertices.appendSlice(self.allocator, &vtx);
+
+        try self.indices.appendSlice(self.allocator, &[_]u32{
+            base, base + 1, base + 2,
+            base, base + 2, base + 3,
+        });
+    }
+
+    pub fn addText(self: *DrawList, font: *const Font, x: f32, y: f32, text: []const u8, color: shapes.Color) !void {
+        var cursor_x = x;
+        const cursor_y = y + font.ascent * font.scale;
+
+        for (text) |c| {
+            const glyph_index: usize = @intCast(c);
+            const g = font.glyphs[glyph_index];
+
+            const gx0 = cursor_x + g.x_off * font.scale;
+            const gy0 = cursor_y + g.y_off * font.scale;
+            const gx1 = gx0 + (@as(f32, @floatFromInt(g.x1 - g.x0)) * font.scale);
+            const gy1 = gy0 + (@as(f32, @floatFromInt(g.y1 - g.y0)) * font.scale);
+
+            const uv_min = .{
+                @as(f32, @floatFromInt(g.x0)) / @as(f32, @floatFromInt(font.tex_width)),
+                @as(f32, @floatFromInt(g.y0)) / @as(f32, @floatFromInt(font.tex_height)),
+            };
+
+            const uv_max = .{
+                @as(f32, @floatFromInt(g.x1)) / @as(f32, @floatFromInt(font.tex_width)),
+                @as(f32, @floatFromInt(g.y1)) / @as(f32, @floatFromInt(font.tex_height)),
+            };
+
+            try self.addRectUV(.{ .x = gx0, .y = gy0, .w = gx1 - gx0, .h = gy1 - gy0 }, uv_min, uv_max, color);
+
+            cursor_x += g.x_advance * font.scale;
+        }
     }
 
     pub fn deinit(self: *DrawList) void {

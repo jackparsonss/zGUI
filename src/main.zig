@@ -39,17 +39,17 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var gui = GuiContext.init(allocator);
-    defer gui.deinit();
-
     var renderer = GLRenderer.init();
+
+    var gui = try GuiContext.init(allocator);
+    defer gui.deinit();
 
     gl.glClearColor(0.55, 0.55, 0.55, 1.0);
     while (glfw.glfwWindowShouldClose(window) == 0) {
         glfw.glfwPollEvents();
 
         input.updateInput(&gui, window);
-        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, 0x00ff0fff)) {}
+        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, "hello world", .{ 255, 200, 100, 1 })) {}
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, 1920, 1080);
