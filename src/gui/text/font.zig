@@ -134,10 +134,10 @@ pub const Font = struct {
         for (text) |char| {
             const idx: usize = @intCast(char);
             const g = self.glyphs[idx];
-            width += g.x_advance * self.scale;
+            width += g.x_advance;
         }
 
-        const height = (self.ascent - self.descent + self.line_gap) * self.scale;
+        const height = (self.ascent - self.descent + self.line_gap);
         return TextMetrics{
             .width = width,
             .height = height,

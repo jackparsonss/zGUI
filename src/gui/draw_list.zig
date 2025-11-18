@@ -82,30 +82,20 @@ pub const DrawList = struct {
 
     pub fn addText(self: *DrawList, font: *const Font, x: f32, y: f32, text: []const u8, color: shapes.Color) !void {
         var cursor_x = x;
-        const cursor_y = y + font.ascent * font.scale;
+        const cursor_y = y + font.ascent;
 
         for (text) |c| {
             const glyph_index: usize = @intCast(c);
             const g = font.glyphs[glyph_index];
 
-            const gx0 = cursor_x + g.x_off * font.scale;
-            const gy0 = cursor_y + g.y_off * font.scale;
-            const gx1 = gx0 + (@as(f32, @floatFromInt(g.x1 - g.x0)) * font.scale);
-            const gy1 = gy0 + (@as(f32, @floatFromInt(g.y1 - g.y0)) * font.scale);
+            const gx0 = cursor_x + g.x_off;
+            const gy0 = cursor_y + g.y_off;
+            const gx1 = gx0 + (@as(f32, @floatFromInt(g.x1 - g.x0)));
+            const gy1 = gy0 + (@as(f32, @floatFromInt(g.y1 - g.y0)));
 
-            const uv_min = .{
-                @as(f32, @floatFromInt(g.x0)) / @as(f32, @floatFromInt(font.tex_width)),
-                @as(f32, @floatFromInt(g.y0)) / @as(f32, @floatFromInt(font.tex_height)),
-            };
+            try self.addRectUV(.{ .x = gx0, .y = gy0, .w = gx1 - gx0, .h = gy1 - gy0 }, g.uv0, g.uv1, color);
 
-            const uv_max = .{
-                @as(f32, @floatFromInt(g.x1)) / @as(f32, @floatFromInt(font.tex_width)),
-                @as(f32, @floatFromInt(g.y1)) / @as(f32, @floatFromInt(font.tex_height)),
-            };
-
-            try self.addRectUV(.{ .x = gx0, .y = gy0, .w = gx1 - gx0, .h = gy1 - gy0 }, uv_min, uv_max, color);
-
-            cursor_x += g.x_advance * font.scale;
+            cursor_x += g.x_advance;
         }
     }
 

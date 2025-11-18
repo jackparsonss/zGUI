@@ -123,7 +123,7 @@ fn createShader() u32 {
         \\layout (location = 0) out vec4 out_color;
         \\
         \\void main() {
-        \\    out_color = vColor * texture(uTexture, vUV.st);
+        \\    out_color = vec4(vColor.rgb, vColor.a * texture(uTexture, vUV.st).r);
         \\}
     ;
 
