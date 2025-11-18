@@ -1,5 +1,6 @@
 const std = @import("std");
 const gl = @import("../c.zig").glad;
+const GuiContext = @import("../context.zig").GuiContext;
 const Vertex = @import("../shapes.zig").Vertex;
 const DrawList = @import("../draw_list.zig").DrawList;
 
@@ -22,7 +23,7 @@ pub const GLRenderer = struct {
         return self;
     }
 
-    pub fn render(self: *GLRenderer, dl: *DrawList, width: i32, height: i32) void {
+    pub fn render(self: *GLRenderer, ctx: *GuiContext, width: i32, height: i32) void {
         gl.glUseProgram(self.shader);
         checkGlError("glUseProgram");
 
@@ -35,6 +36,11 @@ pub const GLRenderer = struct {
         gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, &proj);
         checkGlError("glUniformMatrix4fv");
 
+        const tex_loc = gl.glGetUniformLocation(self.shader, "uTexture");
+        gl.glUniform1i(tex_loc, 0);
+        checkGlError("glUniform1i");
+
+        const dl = &ctx.draw_list;
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo);
         checkGlError("glBindBuffer vbo render");
         gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(dl.vertices.items.len * @sizeOf(Vertex)), dl.vertices.items.ptr, gl.GL_DYNAMIC_DRAW);
@@ -44,6 +50,9 @@ pub const GLRenderer = struct {
         checkGlError("glBindBuffer ibo render");
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(dl.indices.items.len * @sizeOf(u32)), dl.indices.items.ptr, gl.GL_DYNAMIC_DRAW);
         checkGlError("glBufferData ibo");
+
+        gl.glActiveTexture(gl.GL_TEXTURE0);
+        gl.glBindTexture(gl.GL_TEXTURE_2D, ctx.font.texture);
 
         gl.glBindVertexArray(self.vao);
         checkGlError("glBindVertexArray render");
@@ -111,11 +120,10 @@ fn createShader() u32 {
         \\
         \\uniform sampler2D uTexture;
         \\
-        \\out vec4 out_color;
+        \\layout (location = 0) out vec4 out_color;
         \\
         \\void main() {
-        \\    float alpha = texture(uTexture, vUV).r;
-        \\    out_color = vec4(vColor.rgb, vColor.a * alpha);
+        \\    out_color = vColor * texture(uTexture, vUV.st);
         \\}
     ;
 

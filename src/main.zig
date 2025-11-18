@@ -44,6 +44,8 @@ pub fn main() !void {
     var gui = try GuiContext.init(allocator);
     defer gui.deinit();
 
+    gl.glEnable(gl.GL_BLEND);
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
     gl.glClearColor(0.55, 0.55, 0.55, 1.0);
     while (glfw.glfwWindowShouldClose(window) == 0) {
         glfw.glfwPollEvents();

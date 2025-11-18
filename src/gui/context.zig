@@ -23,7 +23,7 @@ pub const GuiContext = struct {
     }
 
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
-        renderer.render(&self.draw_list, width, height);
+        renderer.render(self, width, height);
     }
 
     pub fn deinit(self: *GuiContext) void {
