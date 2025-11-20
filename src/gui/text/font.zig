@@ -40,6 +40,7 @@ pub const Font = struct {
         defer file.close();
 
         const data = try file.readToEndAlloc(allocator, 4 * 1024 * 1024);
+        defer allocator.free(data);
 
         var info: stb.stbtt_fontinfo = undefined;
         if (stb.stbtt_InitFont(&info, data.ptr, 0) == 0) {
@@ -67,6 +68,7 @@ pub const Font = struct {
 
         const bitmap_size: usize = @intCast(tex_width * tex_height);
         var bitmap = try allocator.alloc(u8, bitmap_size);
+        defer allocator.free(bitmap);
         @memset(bitmap[0..], 0);
 
         var packer: stb.stbtt_pack_context = undefined;
@@ -82,6 +84,7 @@ pub const Font = struct {
         };
 
         const cd = try allocator.alloc(stb.stbtt_packedchar, 256);
+        defer allocator.free(cd);
         range.chardata_for_range = cd.ptr;
 
         if (stb.stbtt_PackFontRanges(&packer, data.ptr, 0, &range, 1) == 0) {

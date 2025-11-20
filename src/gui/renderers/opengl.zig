@@ -64,8 +64,12 @@ pub const GLRenderer = struct {
         for (dl.commands.items) |cmd| {
             if (cmd.elem_count == 0) continue;
 
-            gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.texture);
-            checkGlError("glBindTexture");
+            // Only bind texture if it's valid (non-zero)
+            // Shader handles non-textured geometry via UV coordinates
+            if (cmd.texture != 0) {
+                gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.texture);
+                checkGlError("glBindTexture");
+            }
 
             const offset_ptr: ?*const anyopaque = @ptrFromInt(cmd.index_offset * @sizeOf(u32));
             gl.glDrawElements(gl.GL_TRIANGLES, @intCast(cmd.elem_count), gl.GL_UNSIGNED_INT, offset_ptr);
