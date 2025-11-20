@@ -2,14 +2,15 @@
 
 ## Project Overview
 
-**zGUI** is an immediate-mode GUI library written in Zig, featuring OpenGL-based rendering with text support via stb_truetype. The project is in early development, currently supporting basic widgets (buttons) with text rendering capabilities.
+**zGUI** is an immediate-mode GUI library written in Zig, featuring OpenGL-based rendering with text support via stb_truetype. The project is in active development, currently supporting interactive buttons with click detection, multi-size text rendering, and rounded corners.
 
 ### Key Facts
 - **Language**: Zig (minimum version 0.15.2)
 - **Build System**: Zig build system (build.zig)
 - **Graphics**: OpenGL 3.3 Core Profile
 - **Dependencies**: GLFW (windowing), GLAD (OpenGL loader), stb_truetype (font rendering)
-- **Current State**: Early development - basic rendering and text support implemented
+- **Current State**: Phase 1 (v0.2) - Interactive widgets with mouse input
+- **Roadmap**: See [roadmap.md](roadmap.md) for the full development plan
 
 ## Repository Structure
 
@@ -21,14 +22,15 @@ zGUI/
 │       ├── c.zig                   # C library bindings (GLFW, GLAD, stb_truetype)
 │       ├── context.zig             # GuiContext - main GUI state container
 │       ├── draw_list.zig           # DrawList - vertex/index buffer management
-│       ├── input.zig               # Input handling (mouse, keyboard)
+│       ├── input.zig               # Input handling (mouse clicks, hover detection)
 │       ├── shapes.zig              # Shape primitives (Vertex, Rect, Color)
 │       ├── renderers/
 │       │   └── opengl.zig          # OpenGL renderer implementation
 │       ├── widgets/
-│       │   └── button.zig          # Button widget implementation
+│       │   └── button.zig          # Button widget with click detection
 │       └── text/
 │           ├── font.zig            # Font loading and text measurement
+│           ├── font_cache.zig      # Multi-size font caching system
 │           └── RobotoMono-Regular.ttf  # Default font
 ├── external/
 │   └── font/
@@ -36,6 +38,8 @@ zGUI/
 │       └── stb_truetype.h          # stb_truetype header
 ├── build.zig                       # Build configuration
 ├── build.zig.zon                   # Dependency management
+├── roadmap.md                      # Development roadmap (v0.1 → v1.0+)
+├── CLAUDE.md                       # This file
 └── README.md
 
 ```
@@ -49,16 +53,18 @@ The central state manager for the GUI system.
 
 ```zig
 pub const GuiContext = struct {
-    draw_list: DrawList,      // Command buffer for rendering
-    cursor_pos: CursorPosition,  // Current mouse position
-    font: Font,               // Loaded font for text rendering
+    draw_list: DrawList,        // Command buffer for rendering
+    input: Input,               // Input state (mouse position, clicks, hover)
+    font_cache: FontCache,      // Multi-size font cache
+    current_font_texture: u32,  // Currently active font texture
 }
 ```
 
 **Key responsibilities:**
 - Manages the draw list (vertex/index buffers)
-- Tracks input state (cursor position)
-- Owns the font instance
+- Tracks input state via Input struct (cursor position, mouse clicks)
+- Manages font cache for multiple font sizes
+- Provides text measurement and rendering helpers
 - Orchestrates rendering via the renderer
 
 #### 2. **DrawList** (`src/gui/draw_list.zig`)

@@ -9,7 +9,7 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, font_size:
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
     const ty = rect.y + (rect.h - metrics.height) * 0.5;
 
-    try ctx.addText(tx, ty, label, font_size, .{ 0, 0, 0, 255 });
+    try ctx.addText(tx, ty, label, font_size, 0x000000FF);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;

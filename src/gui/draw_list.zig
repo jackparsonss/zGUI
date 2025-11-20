@@ -36,6 +36,7 @@ pub const DrawList = struct {
     pub fn setTexture(self: *DrawList, texture: u32) !void {
         if (texture != self.current_texture) {
             self.current_texture = texture;
+
             // Start a new draw command for this texture
             if (self.commands.items.len > 0) {
                 // Close the previous command
@@ -87,10 +88,11 @@ pub const DrawList = struct {
 
     pub fn addRect(self: *DrawList, rect: shapes.Rect, color: shapes.Color) !void {
         try self.ensureDrawCmd();
-        const v1 = shapes.Vertex{ .pos = .{ rect.x, rect.y }, .color = color };
-        const v2 = shapes.Vertex{ .pos = .{ rect.x + rect.w, rect.y }, .color = color };
-        const v3 = shapes.Vertex{ .pos = .{ rect.x + rect.w, rect.y + rect.h }, .color = color };
-        const v4 = shapes.Vertex{ .pos = .{ rect.x, rect.y + rect.h }, .color = color };
+        const rgba = shapes.colorToRGBA(color);
+        const v1 = shapes.Vertex{ .pos = .{ rect.x, rect.y }, .color = rgba };
+        const v2 = shapes.Vertex{ .pos = .{ rect.x + rect.w, rect.y }, .color = rgba };
+        const v3 = shapes.Vertex{ .pos = .{ rect.x + rect.w, rect.y + rect.h }, .color = rgba };
+        const v4 = shapes.Vertex{ .pos = .{ rect.x, rect.y + rect.h }, .color = rgba };
 
         const base: u32 = @intCast(self.vertices.items.len);
         try self.vertices.appendSlice(self.allocator, &[_]shapes.Vertex{ v1, v2, v3, v4 });
@@ -113,27 +115,28 @@ pub const DrawList = struct {
 
         // Corner centers and their start angles (going clockwise from top-left)
         const corners = [4][2]f32{
-            .{ rect.x + r, rect.y + r },           // Top-left
-            .{ rect.x + rect.w - r, rect.y + r },  // Top-right
+            .{ rect.x + r, rect.y + r }, // Top-left
+            .{ rect.x + rect.w - r, rect.y + r }, // Top-right
             .{ rect.x + rect.w - r, rect.y + rect.h - r }, // Bottom-right
-            .{ rect.x + r, rect.y + rect.h - r },  // Bottom-left
+            .{ rect.x + r, rect.y + rect.h - r }, // Bottom-left
         };
 
         const start_angles = [4]f32{
-            pi,          // Top-left: start at π (pointing left)
-            1.5 * pi,    // Top-right: start at 3π/2 (pointing up)
-            0.0,         // Bottom-right: start at 0 (pointing right)
-            0.5 * pi,    // Bottom-left: start at π/2 (pointing down)
+            pi, // Top-left: start at π (pointing left)
+            1.5 * pi, // Top-right: start at 3π/2 (pointing up)
+            0.0, // Bottom-right: start at 0 (pointing right)
+            0.5 * pi, // Bottom-left: start at π/2 (pointing down)
         };
 
         const base: u32 = @intCast(self.vertices.items.len);
+        const rgba = shapes.colorToRGBA(color);
 
         // Center vertex for triangle fan
         const center_x = rect.x + rect.w * 0.5;
         const center_y = rect.y + rect.h * 0.5;
         try self.vertices.append(self.allocator, shapes.Vertex{
             .pos = .{ center_x, center_y },
-            .color = color,
+            .color = rgba,
         });
 
         // Generate vertices for each corner arc
@@ -148,7 +151,7 @@ pub const DrawList = struct {
 
                 try self.vertices.append(self.allocator, shapes.Vertex{
                     .pos = .{ x, y },
-                    .color = color,
+                    .color = rgba,
                 });
             }
         }
@@ -158,8 +161,8 @@ pub const DrawList = struct {
         var idx: u32 = 1;
         while (idx < vertex_count - 1) : (idx += 1) {
             try self.indices.appendSlice(self.allocator, &[_]u32{
-                base,           // Center
-                base + idx,     // Current vertex
+                base, // Center
+                base + idx, // Current vertex
                 base + idx + 1, // Next vertex
             });
         }
@@ -192,11 +195,12 @@ pub const DrawList = struct {
         const uv2 = uv_max[0];
         const v2 = uv_max[1];
 
+        const rgba = shapes.colorToRGBA(color);
         const vtx = [_]shapes.Vertex{
-            .{ .pos = .{ x1, y1 }, .uv = .{ uv1, v1 }, .color = color },
-            .{ .pos = .{ x2, y1 }, .uv = .{ uv2, v1 }, .color = color },
-            .{ .pos = .{ x2, y2 }, .uv = .{ uv2, v2 }, .color = color },
-            .{ .pos = .{ x1, y2 }, .uv = .{ uv1, v2 }, .color = color },
+            .{ .pos = .{ x1, y1 }, .uv = .{ uv1, v1 }, .color = rgba },
+            .{ .pos = .{ x2, y1 }, .uv = .{ uv2, v1 }, .color = rgba },
+            .{ .pos = .{ x2, y2 }, .uv = .{ uv2, v2 }, .color = rgba },
+            .{ .pos = .{ x1, y2 }, .uv = .{ uv1, v2 }, .color = rgba },
         };
 
         const base: u32 = @intCast(self.vertices.items.len);

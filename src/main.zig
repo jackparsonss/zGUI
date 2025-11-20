@@ -79,13 +79,13 @@ pub fn main() !void {
         gui.newFrame();
         gui.updateInput(window);
 
-        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 }, 10.0)) {
+        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, 0xFFC864FF, 10.0)) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 }, 12.0)) {
+        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, 0x64C8FFFF, 12.0)) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 }, 8.0)) {
+        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, 0xC864FFFF, 8.0)) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
 
@@ -94,7 +94,7 @@ pub fn main() !void {
             const fps_metrics = try gui.measureText(fps_text, 20);
             const fps_x = @as(f32, @floatFromInt(fb_width)) - fps_metrics.width - 60;
             const fps_y = 10;
-            try gui.addText(fps_x, fps_y, fps_text, 36, .{ 255, 255, 255, 255 });
+            try gui.addText(fps_x, fps_y, fps_text, 36, 0xFFFFFFFF);
         }
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
