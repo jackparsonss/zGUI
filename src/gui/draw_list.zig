@@ -101,6 +101,79 @@ pub const DrawList = struct {
         self.updateCurrentCmd();
     }
 
+    pub fn addRoundedRect(self: *DrawList, rect: shapes.Rect, radius: f32, color: shapes.Color) !void {
+        try self.ensureDrawCmd();
+
+        const segments_per_corner = 8;
+        const pi = std.math.pi;
+
+        // Clamp radius to not exceed half of the smallest dimension
+        const max_radius = @min(rect.w, rect.h) * 0.5;
+        const r = @min(radius, max_radius);
+
+        // Corner centers and their start angles (going clockwise from top-left)
+        const corners = [4][2]f32{
+            .{ rect.x + r, rect.y + r },           // Top-left
+            .{ rect.x + rect.w - r, rect.y + r },  // Top-right
+            .{ rect.x + rect.w - r, rect.y + rect.h - r }, // Bottom-right
+            .{ rect.x + r, rect.y + rect.h - r },  // Bottom-left
+        };
+
+        const start_angles = [4]f32{
+            pi,          // Top-left: start at π (pointing left)
+            1.5 * pi,    // Top-right: start at 3π/2 (pointing up)
+            0.0,         // Bottom-right: start at 0 (pointing right)
+            0.5 * pi,    // Bottom-left: start at π/2 (pointing down)
+        };
+
+        const base: u32 = @intCast(self.vertices.items.len);
+
+        // Center vertex for triangle fan
+        const center_x = rect.x + rect.w * 0.5;
+        const center_y = rect.y + rect.h * 0.5;
+        try self.vertices.append(self.allocator, shapes.Vertex{
+            .pos = .{ center_x, center_y },
+            .color = color,
+        });
+
+        // Generate vertices for each corner arc
+        var i: usize = 0;
+        while (i < 4) : (i += 1) {
+            var seg: usize = 0;
+            while (seg <= segments_per_corner) : (seg += 1) {
+                const t = @as(f32, @floatFromInt(seg)) / @as(f32, @floatFromInt(segments_per_corner));
+                const angle = start_angles[i] + t * pi * 0.5;
+                const x = corners[i][0] + @cos(angle) * r;
+                const y = corners[i][1] + @sin(angle) * r;
+
+                try self.vertices.append(self.allocator, shapes.Vertex{
+                    .pos = .{ x, y },
+                    .color = color,
+                });
+            }
+        }
+
+        // Generate indices for triangle fan
+        const vertex_count = 1 + 4 * (segments_per_corner + 1);
+        var idx: u32 = 1;
+        while (idx < vertex_count - 1) : (idx += 1) {
+            try self.indices.appendSlice(self.allocator, &[_]u32{
+                base,           // Center
+                base + idx,     // Current vertex
+                base + idx + 1, // Next vertex
+            });
+        }
+
+        // Close the loop
+        try self.indices.appendSlice(self.allocator, &[_]u32{
+            base,
+            base + vertex_count - 1,
+            base + 1,
+        });
+
+        self.updateCurrentCmd();
+    }
+
     pub fn addRectUV(
         self: *DrawList,
         rect: shapes.Rect,

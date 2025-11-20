@@ -79,13 +79,13 @@ pub fn main() !void {
         gui.newFrame();
         gui.updateInput(window);
 
-        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 })) {
+        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 }, 10.0)) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 })) {
+        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 }, 12.0)) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 })) {
+        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 }, 8.0)) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
 
