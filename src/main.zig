@@ -45,6 +45,9 @@ pub fn main() !void {
     var gui = try GuiContext.init(allocator);
     defer gui.deinit();
 
+    glfw.glfwSetWindowUserPointer(window, &gui);
+    _ = glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
+
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
     gl.glClearColor(0.55, 0.55, 0.55, 1.0);
@@ -65,7 +68,7 @@ pub fn main() !void {
         var fb_height: i32 = 0;
         glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
 
-        // Calculate FPS (only if debug is enabled)
+        // calculate FPS
         if (build_options.debug) {
             const current_time = glfw.glfwGetTime();
             const delta_time = current_time - last_time;
@@ -74,14 +77,18 @@ pub fn main() !void {
         }
 
         gui.newFrame();
-        input.updateInput(&gui, window);
+        gui.updateInput(window);
 
-        // Render buttons at different font sizes
-        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 })) {}
-        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 })) {}
-        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 })) {}
+        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 })) {
+            std.debug.print("Button 'hello world' was clicked!\n", .{});
+        }
+        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 })) {
+            std.debug.print("Button 'Large Text' was clicked!\n", .{});
+        }
+        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 })) {
+            std.debug.print("Button 'small text' was clicked!\n", .{});
+        }
 
-        // Render FPS counter in top right corner (only if debug is enabled)
         if (build_options.debug) {
             const fps_text = try std.fmt.bufPrint(&fps_buffer, "{d:.0} FPS", .{fps});
             const fps_metrics = try gui.measureText(fps_text, 20);
@@ -89,8 +96,6 @@ pub fn main() !void {
             const fps_y = 10;
             try gui.addText(fps_x, fps_y, fps_text, 36, .{ 255, 255, 255, 255 });
         }
-
-        // Get actual framebuffer size (handles retina/high-DPI displays)
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, fb_width, fb_height);

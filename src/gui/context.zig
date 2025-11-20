@@ -4,26 +4,41 @@ const TextMetrics = @import("text/font.zig").TextMetrics;
 const DrawList = @import("draw_list.zig").DrawList;
 const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
 const shapes = @import("shapes.zig");
-
-pub const CursorPosition = struct { x: f64, y: f64 };
+const Input = @import("input.zig").Input;
+const c = @import("c.zig");
+const Window = c.Window;
 
 pub const GuiContext = struct {
     draw_list: DrawList,
-    cursor_pos: CursorPosition,
+    input: Input,
     font_cache: FontCache,
     current_font_texture: u32,
 
     pub fn init(allocator: std.mem.Allocator) !GuiContext {
         return GuiContext{
             .draw_list = DrawList.init(allocator),
-            .cursor_pos = CursorPosition{ .x = 0, .y = 0 },
+            .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
         };
     }
 
     pub fn newFrame(self: *GuiContext) void {
+        self.input.beginFrame();
         self.draw_list.clear();
+    }
+
+    pub fn updateInput(self: *GuiContext, window: Window) void {
+        self.input.update(window);
+    }
+
+    pub fn handleMouseButton(self: *GuiContext, button: c_int, action: c_int) void {
+        const GLFW_MOUSE_BUTTON_LEFT = 0;
+        const GLFW_PRESS = 1;
+
+        if (button == GLFW_MOUSE_BUTTON_LEFT and action == GLFW_PRESS) {
+            self.input.registerMouseClick();
+        }
     }
 
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {

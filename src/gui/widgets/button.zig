@@ -11,5 +11,8 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, font_size:
 
     try ctx.addText(tx, ty, label, font_size, .{ 0, 0, 0, 255 });
 
-    return false;
+    const is_hovered = ctx.input.isMouseInRect(rect);
+    const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+
+    return is_clicked;
 }
