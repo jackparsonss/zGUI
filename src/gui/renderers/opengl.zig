@@ -45,7 +45,10 @@ pub const GLRenderer = struct {
         gl.glUniform1i(tex_loc, 0);
         checkGlError("glUniform1i");
 
-        // Upload vertex and index data once
+        // Bind VAO first, then upload vertex and index data
+        gl.glBindVertexArray(self.vao);
+        checkGlError("glBindVertexArray render");
+
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo);
         checkGlError("glBindBuffer vbo render");
         gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(dl.vertices.items.len * @sizeOf(Vertex)), dl.vertices.items.ptr, gl.GL_DYNAMIC_DRAW);
@@ -55,9 +58,6 @@ pub const GLRenderer = struct {
         checkGlError("glBindBuffer ibo render");
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(dl.indices.items.len * @sizeOf(u32)), dl.indices.items.ptr, gl.GL_DYNAMIC_DRAW);
         checkGlError("glBufferData ibo");
-
-        gl.glBindVertexArray(self.vao);
-        checkGlError("glBindVertexArray render");
 
         gl.glActiveTexture(gl.GL_TEXTURE0);
 
@@ -231,12 +231,32 @@ pub fn checkGlError(location: []const u8) void {
     }
 }
 
-// orthograpic projection
+// orthographic projection - column-major order for OpenGL
 fn ortho(l: f32, r: f32, b: f32, t: f32, n: f32, f: f32) [16]f32 {
+    const rl = r - l;
+    const tb = t - b;
+    const fn_ = f - n;
+
     return .{
-        2 / (r - l),        0,                  0,                  0,
-        0,                  2 / (t - b),        0,                  0,
-        0,                  0,                  -2 / (f - n),       0,
-        -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1,
+        // Column 0
+        2.0 / rl,
+        0.0,
+        0.0,
+        0.0,
+        // Column 1
+        0.0,
+        2.0 / tb,
+        0.0,
+        0.0,
+        // Column 2
+        0.0,
+        0.0,
+        -2.0 / fn_,
+        0.0,
+        // Column 3
+        -(r + l) / rl,
+        -(t + b) / tb,
+        -(f + n) / fn_,
+        1.0,
     };
 }

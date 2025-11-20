@@ -4,6 +4,9 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // Add debug option (use -Ddebug=true to enable)
+    const debug = b.option(bool, "debug", "Enable debug features (FPS counter, etc)") orelse false;
+
     const exe = b.addExecutable(.{
         .name = "zgui",
         .root_module = b.createModule(.{
@@ -12,6 +15,11 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+
+    // Add build options
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "debug", debug);
+    exe.root_module.addOptions("build_options", build_options);
 
     const glfw_dependency = b.dependency("glfw_zig", .{
         .target = target,
