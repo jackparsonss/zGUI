@@ -2,14 +2,14 @@ const GuiContext = @import("../context.zig").GuiContext;
 const shapes = @import("../shapes.zig");
 
 fn darkenColor(color: shapes.Color, factor: f32) shapes.Color {
-    const r: u8 = @intCast((color >> 24) & 0xFF);
-    const g: u8 = @intCast((color >> 16) & 0xFF);
-    const b: u8 = @intCast((color >> 8) & 0xFF);
+    const r: f32 = @floatFromInt((color >> 24) & 0xFF);
+    const g: f32 = @floatFromInt((color >> 16) & 0xFF);
+    const b: f32 = @floatFromInt((color >> 8) & 0xFF);
     const a: u8 = @intCast(color & 0xFF);
 
-    const new_r: u8 = @intFromFloat(@as(f32, @floatFromInt(r)) * factor);
-    const new_g: u8 = @intFromFloat(@as(f32, @floatFromInt(g)) * factor);
-    const new_b: u8 = @intFromFloat(@as(f32, @floatFromInt(b)) * factor);
+    const new_r: u8 = @intFromFloat(r * factor);
+    const new_g: u8 = @intFromFloat(g * factor);
+    const new_b: u8 = @intFromFloat(b * factor);
 
     return (@as(u32, new_r) << 24) | (@as(u32, new_g) << 16) | (@as(u32, new_b) << 8) | @as(u32, a);
 }
