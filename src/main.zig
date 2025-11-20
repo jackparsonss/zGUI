@@ -51,7 +51,7 @@ pub fn main() !void {
         glfw.glfwPollEvents();
 
         input.updateInput(&gui, window);
-        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, "hello world", .{ 255, 200, 100, 1 })) {}
+        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, "hello world", .{ 255, 200, 100, 255 })) {}
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, 1920, 1080);

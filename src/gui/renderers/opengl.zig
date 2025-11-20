@@ -123,7 +123,14 @@ fn createShader() u32 {
         \\layout (location = 0) out vec4 out_color;
         \\
         \\void main() {
-        \\    out_color = vec4(vColor.rgb, vColor.a * texture(uTexture, vUV.st).r);
+        \\    // Check if this is non-textured geometry (default UV is 1.0, 0.0)
+        \\    if (vUV.x >= 0.99 && vUV.y <= 0.01) {
+        \\        // Solid color rendering (for rectangles, shapes, etc.)
+        \\        out_color = vColor;
+        \\    } else {
+        \\        // Textured rendering (for text)
+        \\        out_color = vec4(vColor.rgb, vColor.a * texture(uTexture, vUV.st).r);
+        \\    }
         \\}
     ;
 

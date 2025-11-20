@@ -9,7 +9,7 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, color: sha
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
     const ty = rect.y + (rect.h - metrics.height) * 0.5;
 
-    try ctx.draw_list.addText(&ctx.font, tx, ty, label, .{ 0, 0, 0, 1 });
+    try ctx.draw_list.addText(&ctx.font, tx, ty, label, .{ 0, 0, 0, 255 });
 
     return false;
 }
