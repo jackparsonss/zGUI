@@ -52,10 +52,21 @@ pub const Font = struct {
         stb.stbtt_GetFontVMetrics(&info, &ascent, &descent, &line_gap);
 
         const scale = stb.stbtt_ScaleForPixelHeight(&info, pixel_height);
-        const tex_width = 512;
-        const tex_height = 512;
 
-        var bitmap = try allocator.alloc(u8, tex_width * tex_height);
+        // Calculate texture size based on font size to ensure all glyphs fit
+        // Larger fonts need more space in the texture atlas
+        const tex_size: i32 = if (pixel_height <= 20)
+            512
+        else if (pixel_height <= 48)
+            1024
+        else
+            2048;
+
+        const tex_width = tex_size;
+        const tex_height = tex_size;
+
+        const bitmap_size: usize = @intCast(tex_width * tex_height);
+        var bitmap = try allocator.alloc(u8, bitmap_size);
         @memset(bitmap[0..], 0);
 
         var packer: stb.stbtt_pack_context = undefined;
@@ -100,6 +111,9 @@ pub const Font = struct {
             bitmap.ptr,
         );
 
+        const tex_width_f: f32 = @floatFromInt(tex_width);
+        const tex_height_f: f32 = @floatFromInt(tex_height);
+
         var glyphs: [256]Glyph = undefined;
         for (0..256) |i| {
             const char = cd[i];
@@ -111,8 +125,8 @@ pub const Font = struct {
                 .x_off = char.xoff,
                 .y_off = char.yoff,
                 .x_advance = char.xadvance,
-                .uv0 = .{ @as(f32, @floatFromInt(char.x0)) / tex_width, @as(f32, @floatFromInt(char.y0)) / tex_height },
-                .uv1 = .{ @as(f32, @floatFromInt(char.x1)) / tex_width, @as(f32, @floatFromInt(char.y1)) / tex_height },
+                .uv0 = .{ @as(f32, @floatFromInt(char.x0)) / tex_width_f, @as(f32, @floatFromInt(char.y0)) / tex_height_f },
+                .uv1 = .{ @as(f32, @floatFromInt(char.x1)) / tex_width_f, @as(f32, @floatFromInt(char.y1)) / tex_height_f },
             };
         }
 
@@ -142,5 +156,9 @@ pub const Font = struct {
             .width = width,
             .height = height,
         };
+    }
+
+    pub fn deinit(self: *Font) void {
+        gl.glDeleteTextures(1, &self.texture);
     }
 };

@@ -24,6 +24,11 @@ pub const GLRenderer = struct {
     }
 
     pub fn render(self: *GLRenderer, ctx: *GuiContext, width: i32, height: i32) void {
+        const dl = &ctx.draw_list;
+        if (dl.vertices.items.len == 0 or dl.commands.items.len == 0) {
+            return;
+        }
+
         gl.glUseProgram(self.shader);
         checkGlError("glUseProgram");
 
@@ -40,7 +45,7 @@ pub const GLRenderer = struct {
         gl.glUniform1i(tex_loc, 0);
         checkGlError("glUniform1i");
 
-        const dl = &ctx.draw_list;
+        // Upload vertex and index data once
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo);
         checkGlError("glBindBuffer vbo render");
         gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(dl.vertices.items.len * @sizeOf(Vertex)), dl.vertices.items.ptr, gl.GL_DYNAMIC_DRAW);
@@ -51,13 +56,21 @@ pub const GLRenderer = struct {
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(dl.indices.items.len * @sizeOf(u32)), dl.indices.items.ptr, gl.GL_DYNAMIC_DRAW);
         checkGlError("glBufferData ibo");
 
-        gl.glActiveTexture(gl.GL_TEXTURE0);
-        gl.glBindTexture(gl.GL_TEXTURE_2D, ctx.font.texture);
-
         gl.glBindVertexArray(self.vao);
         checkGlError("glBindVertexArray render");
-        gl.glDrawElements(gl.GL_TRIANGLES, @intCast(dl.indices.items.len), gl.GL_UNSIGNED_INT, null);
-        checkGlError("glDrawElements");
+
+        gl.glActiveTexture(gl.GL_TEXTURE0);
+
+        for (dl.commands.items) |cmd| {
+            if (cmd.elem_count == 0) continue;
+
+            gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.texture);
+            checkGlError("glBindTexture");
+
+            const offset_ptr: ?*const anyopaque = @ptrFromInt(cmd.index_offset * @sizeOf(u32));
+            gl.glDrawElements(gl.GL_TRIANGLES, @intCast(cmd.elem_count), gl.GL_UNSIGNED_INT, offset_ptr);
+            checkGlError("glDrawElements");
+        }
     }
 };
 

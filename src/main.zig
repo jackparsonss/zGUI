@@ -50,8 +50,13 @@ pub fn main() !void {
     while (glfw.glfwWindowShouldClose(window) == 0) {
         glfw.glfwPollEvents();
 
+        gui.newFrame();
         input.updateInput(&gui, window);
-        if (try button(&gui, .{ .x = 30, .y = 30, .w = 120, .h = 35 }, "hello world", .{ 255, 200, 100, 255 })) {}
+
+        // Render buttons at different font sizes
+        if (try button(&gui, .{ .x = 30, .y = 30, .w = 200, .h = 50 }, "hello world", 24, .{ 255, 200, 100, 255 })) {}
+        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, .{ 100, 200, 255, 255 })) {}
+        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, .{ 200, 100, 255, 255 })) {}
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, 1920, 1080);
