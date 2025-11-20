@@ -5,6 +5,7 @@
 **zGUI** is an immediate-mode GUI library written in Zig, featuring OpenGL-based rendering with text support via stb_truetype. The project is in active development, currently supporting interactive buttons with click detection, multi-size text rendering, and rounded corners.
 
 ### Key Facts
+
 - **Language**: Zig (minimum version 0.15.2)
 - **Build System**: Zig build system (build.zig)
 - **Graphics**: OpenGL 3.3 Core Profile
@@ -49,6 +50,7 @@ zGUI/
 ### Core Components
 
 #### 1. **GuiContext** (`src/gui/context.zig`)
+
 The central state manager for the GUI system.
 
 ```zig
@@ -61,6 +63,7 @@ pub const GuiContext = struct {
 ```
 
 **Key responsibilities:**
+
 - Manages the draw list (vertex/index buffers)
 - Tracks input state via Input struct (cursor position, mouse clicks)
 - Manages font cache for multiple font sizes
@@ -68,9 +71,11 @@ pub const GuiContext = struct {
 - Orchestrates rendering via the renderer
 
 #### 2. **DrawList** (`src/gui/draw_list.zig`)
+
 Immediate-mode command buffer that accumulates geometry for rendering.
 
 **Key methods:**
+
 - `addVertex()` - Add a single vertex
 - `addTriangle()` - Add a triangle (3 vertices)
 - `addRect()` - Add a rectangle (2 triangles)
@@ -81,9 +86,11 @@ Immediate-mode command buffer that accumulates geometry for rendering.
 **Design pattern:** Immediate-mode - buffers are cleared each frame and rebuilt.
 
 #### 3. **GLRenderer** (`src/gui/renderers/opengl.zig`)
+
 OpenGL 3.3 Core renderer using vertex arrays and shaders.
 
 **Features:**
+
 - Single shader program for all rendering
 - Orthographic projection matrix
 - Vertex format: position (vec2) + UV (vec2) + color (vec4 ubyte)
@@ -91,19 +98,23 @@ OpenGL 3.3 Core renderer using vertex arrays and shaders.
 - Blend mode enabled for alpha transparency
 
 **Shaders:**
+
 - Vertex shader: Transforms vertices with orthographic projection
 - Fragment shader: Samples texture and multiplies with vertex color (for text)
 
 #### 4. **Font System** (`src/gui/text/font.zig`)
+
 TrueType font rendering using stb_truetype.
 
 **Implementation details:**
+
 - Loads .ttf files at runtime
 - Packs 256 ASCII glyphs into a 512x512 texture atlas
 - Stores glyph metrics (advance, offset, bounds, UVs)
 - Provides text measurement for layout
 
 **Key methods:**
+
 - `Font.load()` - Load font from file path
 - `measure()` - Calculate text dimensions for layout
 
@@ -126,11 +137,11 @@ Widget Functions → DrawList (add shapes/text)
 ### Dependencies (build.zig.zon)
 
 1. **glfw_zig** - GLFW windowing library wrapper
-   - URL: https://github.com/tiawl/glfw.zig.git
+   - URL: <https://github.com/tiawl/glfw.zig.git>
    - Hash: `glfw_zig-1.0.0-NrvYo77XGQA9NU8VB0GNwNWTpnn70DboOGXKPmFNJjme`
 
 2. **zig_glad** - OpenGL function loader
-   - URL: https://github.com/jackparsonss/zig.glad.git
+   - URL: <https://github.com/jackparsonss/zig.glad.git>
    - Hash: `zig_glad-0.0.3-6OirnirhBgDz6aL0IVJ_YtvIOeyKeXklRLvT1mTH878m`
 
 3. **stb_truetype** - Font rendering (bundled in `external/font/`)
@@ -162,9 +173,11 @@ rm -rf .zig-cache zig-out
 
 1. Create widget file in `src/gui/widgets/`
 2. Widget signature should follow this pattern:
+
    ```zig
    pub fn widgetName(ctx: *GuiContext, rect: shapes.Rect, ...) !bool
    ```
+
 3. Widget should:
    - Add geometry to `ctx.draw_list`
    - Return `true` if interacted with, `false` otherwise
@@ -172,6 +185,7 @@ rm -rf .zig-cache zig-out
 4. Import in `main.zig` and use in the main loop
 
 **Example pattern (from button.zig:4-14):**
+
 ```zig
 pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, color: shapes.Color) !bool {
     try ctx.draw_list.addRect(rect, color);
@@ -254,6 +268,7 @@ const shapes = @import("shapes.zig");
 ### Color Format
 
 Colors are `[4]u8` - RGBA with values 0-255:
+
 ```zig
 pub const Color = [4]u8;
 
@@ -280,10 +295,12 @@ pub const Vertex = struct {
 ### Known Bugs (from source code)
 
 1. **glfwTerminate crash** (main.zig:16-17)
+
    ```zig
    // BUG: glfwTerminate causing panic when window closes
    // defer glfw.glfwTerminate();
    ```
+
    - Currently commented out to prevent crash
    - Needs investigation
 
@@ -330,6 +347,7 @@ The renderer includes comprehensive error checking via `checkGlError()` calls af
 ## Adding New Dependencies
 
 1. Add dependency to `build.zig.zon`:
+
    ```zig
    .dependencies = .{
        .package_name = .{
@@ -340,6 +358,7 @@ The renderer includes comprehensive error checking via `checkGlError()` calls af
    ```
 
 2. Update `build.zig`:
+
    ```zig
    const dep = b.dependency("package_name", .{
        .target = target,
@@ -353,6 +372,7 @@ The renderer includes comprehensive error checking via `checkGlError()` calls af
 ## Recent Development Activity
 
 Based on git history (most recent first):
+
 - `ec56cde` - Text rendering fully working
 - `a95857f` - Progress on text rendering
 - `aff2d11` - Shader fixes
@@ -380,17 +400,20 @@ Based on git history (most recent first):
 ### Common Tasks
 
 **Adding a shape primitive:**
+
 1. Add method to `DrawList` (draw_list.zig)
 2. Follow pattern of `addRect` - create vertices, append to buffers
 3. Test in main loop
 
 **Modifying rendering:**
+
 1. Changes to vertex format require shader updates
 2. Update `Vertex` struct in shapes.zig
 3. Update vertex attribute setup in opengl.zig:79-94
 4. Update shader inputs in opengl.zig:98-127
 
 **Adding input support:**
+
 1. Add state to `GuiContext`
 2. Update `input.updateInput()` to poll GLFW
 3. Use in widget functions
