@@ -151,15 +151,6 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 - [ ] Canvas widget (custom drawing)
 - [ ] Minimap/overview widget
 
-### Game-Specific Widgets
-
-- [ ] Health/mana bars
-- [ ] Inventory grid
-- [ ] Skill tree/upgrade tree
-- [ ] Tooltip system
-- [ ] Notification/toast system
-- [ ] Context menu
-
 ---
 
 ## Phase 5: Library API & Integration (v0.6)

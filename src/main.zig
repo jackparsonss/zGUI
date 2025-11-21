@@ -79,13 +79,13 @@ pub fn main() !void {
         gui.newFrame();
         gui.updateInput(window);
 
-        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", 24, 0xFFC864FF, 10.0)) {
+        if (try button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", 36, 0x64C8FFFF, 12.0)) {
+        if (try button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
-        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", 16, 0xC864FFFF, 8.0)) {
+        if (try button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0 })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
 
