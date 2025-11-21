@@ -14,13 +14,20 @@ fn darkenColor(color: shapes.Color, factor: f32) shapes.Color {
     return (@as(u32, new_r) << 24) | (@as(u32, new_g) << 16) | (@as(u32, new_b) << 8) | @as(u32, a);
 }
 
-pub const ButtonOptions = struct {
+pub const Variant = enum {
+    FILLED,
+    OUTLINED,
+};
+
+pub const Options = struct {
     font_size: f32 = 24,
     color: shapes.Color = 0x000000FF,
     border_radius: f32 = 8.0,
+    variant: Variant = .FILLED,
+    border_thickness: f32 = 2.0,
 };
 
-pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: ButtonOptions) !bool {
+pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: Options) !bool {
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
 
@@ -31,7 +38,10 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: Butt
         button_color = darkenColor(opts.color, 0.9);
     }
 
-    try ctx.draw_list.addRoundedRect(rect, opts.border_radius, button_color);
+    switch (opts.variant) {
+        .FILLED => try ctx.draw_list.addRoundedRect(rect, opts.border_radius, button_color),
+        .OUTLINED => try ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, button_color),
+    }
 
     const metrics = try ctx.measureText(label, opts.font_size);
 

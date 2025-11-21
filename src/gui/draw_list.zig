@@ -177,6 +177,89 @@ pub const DrawList = struct {
         self.updateCurrentCmd();
     }
 
+    pub fn addRoundedRectOutline(self: *DrawList, rect: shapes.Rect, radius: f32, thickness: f32, color: shapes.Color) !void {
+        try self.ensureDrawCmd();
+
+        const segments_per_corner = 8;
+        const pi = std.math.pi;
+
+        // Clamp radius to not exceed half of the smallest dimension
+        const max_radius = @min(rect.w, rect.h) * 0.5;
+        const r = @min(radius, max_radius);
+
+        // Clamp thickness to not exceed radius
+        const t = @min(thickness, r);
+        const inner_radius = r - t;
+
+        // Corner centers and their start angles (going clockwise from top-left)
+        const corners = [4][2]f32{
+            .{ rect.x + r, rect.y + r }, // Top-left
+            .{ rect.x + rect.w - r, rect.y + r }, // Top-right
+            .{ rect.x + rect.w - r, rect.y + rect.h - r }, // Bottom-right
+            .{ rect.x + r, rect.y + rect.h - r }, // Bottom-left
+        };
+
+        const start_angles = [4]f32{
+            pi, // Top-left: start at π (pointing left)
+            1.5 * pi, // Top-right: start at 3π/2 (pointing up)
+            0.0, // Bottom-right: start at 0 (pointing right)
+            0.5 * pi, // Bottom-left: start at π/2 (pointing down)
+        };
+
+        const base: u32 = @intCast(self.vertices.items.len);
+        const rgba = shapes.colorToRGBA(color);
+
+        // Generate outer and inner vertices for each corner arc
+        var i: usize = 0;
+        while (i < 4) : (i += 1) {
+            var seg: usize = 0;
+            while (seg <= segments_per_corner) : (seg += 1) {
+                const angle_t = @as(f32, @floatFromInt(seg)) / @as(f32, @floatFromInt(segments_per_corner));
+                const angle = start_angles[i] + angle_t * pi * 0.5;
+
+                // Outer vertex
+                const outer_x = corners[i][0] + @cos(angle) * r;
+                const outer_y = corners[i][1] + @sin(angle) * r;
+                try self.vertices.append(self.allocator, shapes.Vertex{
+                    .pos = .{ outer_x, outer_y },
+                    .color = rgba,
+                });
+
+                // Inner vertex
+                const inner_x = corners[i][0] + @cos(angle) * inner_radius;
+                const inner_y = corners[i][1] + @sin(angle) * inner_radius;
+                try self.vertices.append(self.allocator, shapes.Vertex{
+                    .pos = .{ inner_x, inner_y },
+                    .color = rgba,
+                });
+            }
+        }
+
+        // Generate indices to form triangles between outer and inner vertices
+        const vertices_per_corner = segments_per_corner + 1;
+        const total_vertex_pairs = 4 * vertices_per_corner;
+
+        var pair: u32 = 0;
+        while (pair < total_vertex_pairs) : (pair += 1) {
+            const next_pair = (pair + 1) % total_vertex_pairs;
+
+            const outer_curr = base + pair * 2;
+            const inner_curr = base + pair * 2 + 1;
+            const outer_next = base + next_pair * 2;
+            const inner_next = base + next_pair * 2 + 1;
+
+            // Two triangles forming a quad between current and next pair
+            try self.indices.appendSlice(self.allocator, &[_]u32{
+                outer_curr, inner_curr, outer_next,
+            });
+            try self.indices.appendSlice(self.allocator, &[_]u32{
+                inner_curr, inner_next, outer_next,
+            });
+        }
+
+        self.updateCurrentCmd();
+    }
+
     pub fn addRectUV(
         self: *DrawList,
         rect: shapes.Rect,
