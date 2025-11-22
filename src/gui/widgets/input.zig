@@ -133,14 +133,12 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
     const text_y = rect.y + (rect.h - opts.font_size) * 0.5;
     const available_width = rect.w - (padding * 2.0);
 
-    // Calculate scroll offset to keep cursor visible
     if (state.len > 0) {
         const text_before_cursor = state.buffer[0..state.cursor_pos];
         const metrics_to_cursor = try ctx.measureText(text_before_cursor, opts.font_size);
         const cursor_x_unscrolled = metrics_to_cursor.width;
 
-        // Adjust scroll to keep cursor visible
-        const cursor_margin = 20.0; // Keep cursor at least 20px from edge
+        const cursor_margin = 10.0;
         if (cursor_x_unscrolled - state.scroll_offset > available_width - cursor_margin) {
             // Cursor is past the right edge, scroll right
             state.scroll_offset = cursor_x_unscrolled - available_width + cursor_margin;
@@ -149,22 +147,18 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             state.scroll_offset = @max(0.0, cursor_x_unscrolled - cursor_margin);
         }
     } else {
-        // No text, reset scroll
         state.scroll_offset = 0.0;
     }
 
-    // Render visible text
     if (state.len > 0) {
         const full_text = state.buffer[0..state.len];
 
-        // Find which characters are visible
         var visible_start: usize = 0;
         var visible_end: usize = state.len;
         var current_x: f32 = 0.0;
 
-        // Find start of visible text
         for (0..state.len) |i| {
-            const char_text = state.buffer[0..i + 1];
+            const char_text = state.buffer[0 .. i + 1];
             const metrics = try ctx.measureText(char_text, opts.font_size);
             if (metrics.width >= state.scroll_offset) {
                 visible_start = i;
@@ -176,9 +170,8 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             }
         }
 
-        // Find end of visible text
         for (visible_start..state.len) |i| {
-            const char_text = state.buffer[0..i + 1];
+            const char_text = state.buffer[0 .. i + 1];
             const metrics = try ctx.measureText(char_text, opts.font_size);
             if (metrics.width - state.scroll_offset > available_width) {
                 visible_end = i;
@@ -186,7 +179,6 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             }
         }
 
-        // Render the visible portion
         if (visible_start < visible_end) {
             const visible_text = full_text[visible_start..visible_end];
             const render_x = text_x - (state.scroll_offset - current_x);
@@ -194,7 +186,6 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
         }
     }
 
-    // Render cursor
     if (state.is_focused) {
         const current_time = glfw.glfwGetTime();
         const elapsed = current_time - state.cursor_blink_time;
