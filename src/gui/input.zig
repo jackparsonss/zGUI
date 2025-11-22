@@ -33,12 +33,30 @@ pub fn keyCallback(window: c.Window, key: c_int, scancode: c_int, action: c_int,
     }
 }
 
+pub fn scrollCallback(window: c.Window, xoffset: f64, yoffset: f64) callconv(.c) void {
+    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    if (gui_ptr != null) {
+        const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
+        gui.handleScroll(xoffset, yoffset);
+    }
+}
+
 pub const Input = struct {
     cursor_x: f64,
     cursor_y: f64,
     mouse_left_pressed: bool,
     mouse_left_clicked: bool,
     mouse_left_click_count: u32,
+    mouse_right_pressed: bool,
+    mouse_right_clicked: bool,
+    mouse_right_click_count: u32,
+    mouse_middle_pressed: bool,
+    mouse_middle_clicked: bool,
+    mouse_middle_click_count: u32,
+
+    // Scroll wheel
+    scroll_x: f64,
+    scroll_y: f64,
 
     // Keyboard input
     chars_buffer: [32]u32,
@@ -61,6 +79,14 @@ pub const Input = struct {
             .mouse_left_pressed = false,
             .mouse_left_clicked = false,
             .mouse_left_click_count = 0,
+            .mouse_right_pressed = false,
+            .mouse_right_clicked = false,
+            .mouse_right_click_count = 0,
+            .mouse_middle_pressed = false,
+            .mouse_middle_clicked = false,
+            .mouse_middle_click_count = 0,
+            .scroll_x = 0,
+            .scroll_y = 0,
             .chars_buffer = [_]u32{0} ** 32,
             .chars_count = 0,
             .keys_pressed = [_]bool{false} ** 512,
@@ -76,12 +102,31 @@ pub const Input = struct {
     pub fn beginFrame(self: *Input) void {
         self.mouse_left_clicked = self.mouse_left_click_count > 0;
         self.mouse_left_click_count = 0;
+        self.mouse_right_clicked = self.mouse_right_click_count > 0;
+        self.mouse_right_click_count = 0;
+        self.mouse_middle_clicked = self.mouse_middle_click_count > 0;
+        self.mouse_middle_click_count = 0;
+        self.scroll_x = 0;
+        self.scroll_y = 0;
         self.chars_count = 0;
         @memset(&self.keys_just_pressed, false);
     }
 
     pub fn registerMouseClick(self: *Input) void {
         self.mouse_left_click_count += 1;
+    }
+
+    pub fn registerRightClick(self: *Input) void {
+        self.mouse_right_click_count += 1;
+    }
+
+    pub fn registerMiddleClick(self: *Input) void {
+        self.mouse_middle_click_count += 1;
+    }
+
+    pub fn registerScroll(self: *Input, xoffset: f64, yoffset: f64) void {
+        self.scroll_x += xoffset;
+        self.scroll_y += yoffset;
     }
 
     pub fn update(self: *Input, window: Window) void {
@@ -101,8 +146,14 @@ pub const Input = struct {
         self.cursor_x = window_x * scale_x;
         self.cursor_y = window_y * scale_y;
 
-        const current_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_LEFT);
-        self.mouse_left_pressed = (current_state == glfw.GLFW_PRESS);
+        const left_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_LEFT);
+        self.mouse_left_pressed = (left_state == glfw.GLFW_PRESS);
+
+        const right_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_RIGHT);
+        self.mouse_right_pressed = (right_state == glfw.GLFW_PRESS);
+
+        const middle_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_MIDDLE);
+        self.mouse_middle_pressed = (middle_state == glfw.GLFW_PRESS);
     }
 
     pub fn isMouseInRect(self: *const Input, rect: shapes.Rect) bool {

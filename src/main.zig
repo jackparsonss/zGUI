@@ -6,6 +6,7 @@ const checkbox = @import("gui/widgets/checkbox.zig").checkbox;
 const textInput = @import("gui/widgets/input.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
+const shapes = @import("gui/shapes.zig");
 const input = @import("gui/input.zig");
 const c = @import("gui/c.zig");
 const glfw = c.glfw;
@@ -51,6 +52,7 @@ pub fn main() !void {
     _ = glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
     _ = glfw.glfwSetCharCallback(window, input.charCallback);
     _ = glfw.glfwSetKeyCallback(window, input.keyCallback);
+    _ = glfw.glfwSetScrollCallback(window, input.scrollCallback);
 
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
@@ -103,6 +105,30 @@ pub fn main() !void {
 
         if (try textInput.textInput(&gui, .{ .x = 300, .y = 170, .w = 300, .h = 40 }, &input_state, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
             std.debug.print("Text changed: {s}\n", .{input_state.getText()});
+        }
+
+        const right_btn_rect = shapes.Rect{ .x = 30, .y = 250, .w = 200, .h = 50 };
+        const right_is_hovered = gui.input.isMouseInRect(right_btn_rect);
+        const right_color: u32 = if (right_is_hovered) 0xFF6464FF else 0xC86464FF;
+        if (try btn.button(&gui, right_btn_rect, "Right Click Me", .{ .font_size = 20, .color = right_color, .border_radius = 10.0 })) {} // left click does nothing
+        if (right_is_hovered and gui.input.mouse_right_clicked) {
+            std.debug.print("Right mouse button clicked!\n", .{});
+        }
+
+        const middle_btn_rect = shapes.Rect{ .x = 250, .y = 250, .w = 200, .h = 50 };
+        const middle_is_hovered = gui.input.isMouseInRect(middle_btn_rect);
+        const middle_color: u32 = if (middle_is_hovered) 0x64FF64FF else 0x64C864FF;
+        if (try btn.button(&gui, middle_btn_rect, "Middle Click Me", .{ .font_size = 20, .color = middle_color, .border_radius = 10.0 })) {} // left click does nothing
+        if (middle_is_hovered and gui.input.mouse_middle_clicked) {
+            std.debug.print("Middle mouse button clicked!\n", .{});
+        }
+
+        if (gui.input.scroll_y != 0) {
+            std.debug.print("Scroll Y: {d:.2}\n", .{gui.input.scroll_y});
+        }
+
+        if (gui.input.scroll_x != 0) {
+            std.debug.print("Scroll X: {d:.2}\n", .{gui.input.scroll_x});
         }
 
         if (build_options.debug) {

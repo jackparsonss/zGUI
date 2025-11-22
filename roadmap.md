@@ -29,8 +29,8 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 - [x] Keyboard modifiers (Shift, Ctrl, Alt, Super)
 - [x] Text input events for typing
 - [x] Platform-specific primary modifier (Cmd/Ctrl)
-- [ ] Mouse scroll/wheel input
-- [ ] Right and middle mouse button support
+- [x] Mouse scroll/wheel input
+- [x] Right and middle mouse button support
 
 ### Widget Interactivity
 
@@ -39,7 +39,6 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 - [x] Active/focused visual states
 - [x] Focus system for text input
 - [x] Text selection and editing
-- [ ] Focus system for keyboard navigation (Tab/Arrow keys)
 
 ### Essential Widgets
 
@@ -123,6 +122,7 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 - [ ] Border styling (width, color, style)
 - [ ] Background patterns/textures
 - [ ] Smooth animations for state transitions
+- [ ] Focus system for keyboard navigation (Tab/Arrow keys)
 
 ### Advanced Rendering
 
@@ -199,10 +199,9 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 ### Platform Support
 
 - [ ] Windows support
-- [ ] macOS support
+- [ ] MacOS support
 - [ ] Linux support
-- [ ] Web/WASM support (optional)
-- [ ] Mobile support (iOS/Android, optional)
+- [ ] Web/WASM support
 
 ---
 
@@ -246,43 +245,6 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ---
 
-## Phase 7: Game Engine Features (v1.1+)
-
-**Goal**: Specialized features for game development
-
-### Game Integration
-
-- [ ] Scene graph integration
-- [ ] Entity-component system compatibility
-- [ ] World-space UI (3D positioned UI)
-- [ ] VR/XR support (optional)
-
-### Input Extensions
-
-- [ ] Gamepad/controller support
-- [ ] Touch input support
-- [ ] Multi-touch gestures
-- [ ] Input mapping/remapping UI
-
-### Game-Specific Features
-
-- [ ] Localization/i18n support
-- [ ] Asset loading integration
-- [ ] Save/load UI state
-- [ ] Screen resolution adaptation
-- [ ] Console/debug terminal widget
-- [ ] In-game editor tools
-
-### Advanced Features
-
-- [ ] Animation system for widgets
-- [ ] Particle effects for UI
-- [ ] Sound effect integration
-- [ ] Haptic feedback support
-- [ ] Accessibility features (screen reader, high contrast)
-
----
-
 ## Milestones
 
 | Version | Milestone   | Target Features                 | Status      |
@@ -294,7 +256,6 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 | v0.5    | Advanced    | Complex widgets, data views     | 📋 Planned  |
 | v0.6    | Integration | Multi-backend, easy API         | 📋 Planned  |
 | v1.0    | Production  | Performance, docs, quality      | 📋 Planned  |
-| v1.1+   | Game Engine | Specialized game features       | 📋 Future   |
 
 ---
 

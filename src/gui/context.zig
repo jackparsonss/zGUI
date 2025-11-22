@@ -37,11 +37,16 @@ pub const GuiContext = struct {
     }
 
     pub fn handleMouseButton(self: *GuiContext, button: c_int, action: c_int) void {
-        const GLFW_MOUSE_BUTTON_LEFT = 0;
-        const GLFW_PRESS = 1;
+        const glfw = c.glfw;
 
-        if (button == GLFW_MOUSE_BUTTON_LEFT and action == GLFW_PRESS) {
-            self.input.registerMouseClick();
+        if (action == glfw.GLFW_PRESS) {
+            if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) {
+                self.input.registerMouseClick();
+            } else if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) {
+                self.input.registerRightClick();
+            } else if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) {
+                self.input.registerMiddleClick();
+            }
         }
     }
 
@@ -65,6 +70,10 @@ pub const GuiContext = struct {
         } else {
             self.input.primary_pressed = self.input.ctrl_pressed;
         }
+    }
+
+    pub fn handleScroll(self: *GuiContext, xoffset: f64, yoffset: f64) void {
+        self.input.registerScroll(xoffset, yoffset);
     }
 
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
