@@ -15,8 +15,7 @@ pub fn main() !void {
         std.debug.print("Failed to initialize GLFW\n", .{});
         return;
     }
-    // BUG: glfwTerminate causing panic when window closes
-    // defer glfw.glfwTerminate();
+    defer glfw.glfwTerminate();
 
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -27,6 +26,7 @@ pub fn main() !void {
         std.debug.print("Failed to create window", .{});
         return;
     }
+    defer glfw.glfwDestroyWindow(window);
 
     glfw.glfwMakeContextCurrent(window);
     glfw.glfwSwapInterval(1); // VSYNC
@@ -108,4 +108,7 @@ pub fn main() !void {
 
         glfw.glfwSwapBuffers(window);
     }
+
+    // Process any remaining events to prevent crash on glfwTerminate
+    glfw.glfwPollEvents();
 }
