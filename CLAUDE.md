@@ -10,7 +10,7 @@
 - **Build System**: Zig build system (build.zig)
 - **Graphics**: OpenGL 3.3 Core Profile
 - **Dependencies**: GLFW (windowing), GLAD (OpenGL loader), stb_truetype (font rendering)
-- **Current State**: Phase 1 (v0.2) - Interactive widgets with mouse input
+- **Current State**: Phase 1 (v0.2) - Interactive widgets with full keyboard/mouse input (~80% complete)
 - **Roadmap**: See [roadmap.md](roadmap.md) for the full development plan
 
 ## Repository Structure
@@ -28,7 +28,9 @@ zGUI/
 │       ├── renderers/
 │       │   └── opengl.zig          # OpenGL renderer implementation
 │       ├── widgets/
-│       │   └── button.zig          # Button widget with click detection
+│       │   ├── button.zig          # Button widget with click detection
+│       │   ├── checkbox.zig        # Checkbox widget with toggle
+│       │   └── input.zig           # Text input widget with full editing support
 │       └── text/
 │           ├── font.zig            # Font loading and text measurement
 │           ├── font_cache.zig      # Multi-size font caching system
@@ -56,18 +58,20 @@ The central state manager for the GUI system.
 ```zig
 pub const GuiContext = struct {
     draw_list: DrawList,        // Command buffer for rendering
-    input: Input,               // Input state (mouse position, clicks, hover)
+    input: Input,               // Input state (mouse, keyboard, modifiers)
     font_cache: FontCache,      // Multi-size font cache
     current_font_texture: u32,  // Currently active font texture
+    window: c.Window,           // GLFW window handle for clipboard access
 }
 ```
 
 **Key responsibilities:**
 
 - Manages the draw list (vertex/index buffers)
-- Tracks input state via Input struct (cursor position, mouse clicks)
+- Tracks input state via Input struct (cursor, clicks, keyboard, modifiers)
 - Manages font cache for multiple font sizes
-- Provides text measurement and rendering helpers
+- Provides text measurement and rendering helpers (`measureText`, `addText`)
+- Handles input callbacks from GLFW (mouse, keyboard, character input)
 - Orchestrates rendering via the renderer
 
 #### 2. **DrawList** (`src/gui/draw_list.zig`)
@@ -78,12 +82,15 @@ Immediate-mode command buffer that accumulates geometry for rendering.
 
 - `addVertex()` - Add a single vertex
 - `addTriangle()` - Add a triangle (3 vertices)
-- `addRect()` - Add a rectangle (2 triangles)
+- `addRect()` - Add a filled rectangle (2 triangles)
+- `addRoundedRect()` - Add a filled rounded rectangle
+- `addRoundedRectOutline()` - Add a rounded rectangle outline
 - `addRectUV()` - Add textured rectangle with UV coordinates
 - `addText()` - Add text glyphs as textured rectangles
+- `setTexture()` - Switch active texture (creates new draw command)
 - `clear()` - Clear buffers for next frame
 
-**Design pattern:** Immediate-mode - buffers are cleared each frame and rebuilt.
+**Design pattern:** Immediate-mode - buffers are cleared each frame and rebuilt. Batching by texture via draw commands.
 
 #### 3. **GLRenderer** (`src/gui/renderers/opengl.zig`)
 
@@ -102,7 +109,39 @@ OpenGL 3.3 Core renderer using vertex arrays and shaders.
 - Vertex shader: Transforms vertices with orthographic projection
 - Fragment shader: Samples texture and multiplies with vertex color (for text)
 
-#### 4. **Font System** (`src/gui/text/font.zig`)
+#### 4. **Input System** (`src/gui/input.zig`)
+
+Handles all user input events from mouse and keyboard.
+
+**Features:**
+
+- Mouse cursor position tracking (with DPI scaling)
+- Mouse button state (left button: pressed, clicked)
+- Keyboard key tracking (pressed, just pressed)
+- Character input buffer for text entry
+- Modifier key tracking (Ctrl, Alt, Shift, Super)
+- Platform-specific primary modifier (Cmd on macOS, Ctrl on Windows/Linux)
+- Click detection and hover detection helpers
+
+**Key methods:**
+
+- `update()` - Update cursor position and mouse state
+- `beginFrame()` - Reset per-frame state (clicks, character buffer)
+- `registerMouseClick()` - Record a mouse click event
+- `registerChar()` - Add character to input buffer
+- `registerKey()` - Track key press/release
+- `isMouseInRect()` - Check if cursor is within a rectangle
+- `isKeyPressed()` - Check if key is currently held
+- `isKeyJustPressed()` - Check if key was just pressed this frame
+
+**GLFW Callbacks:**
+
+The system uses GLFW callbacks defined in `input.zig`:
+- `mouseButtonCallback` - Handles mouse button events
+- `charCallback` - Handles character input for typing
+- `keyCallback` - Handles keyboard key events and modifiers
+
+#### 5. **Font System** (`src/gui/text/font.zig`, `font_cache.zig`)
 
 TrueType font rendering using stb_truetype.
 
@@ -115,21 +154,29 @@ TrueType font rendering using stb_truetype.
 
 **Key methods:**
 
-- `Font.load()` - Load font from file path
+- `Font.load()` - Load font from file path at a specific size
 - `measure()` - Calculate text dimensions for layout
+- `FontCache.getFont()` - Get or create a font at a specific size
 
 ### Data Flow
 
 ```
-User Input (GLFW) → Input Handler → GuiContext
+GLFW Events → Callbacks (mouseButtonCallback, charCallback, keyCallback)
                                          ↓
-Widget Functions → DrawList (add shapes/text)
+                              GuiContext.handle*() methods
                                          ↓
-                                    GuiContext.render()
+                              Input.register*() methods
                                          ↓
-                                    GLRenderer.render()
+Main Loop:
+  GuiContext.newFrame() → Input.beginFrame()
                                          ↓
-                                    OpenGL → Screen
+  GuiContext.updateInput() → Input.update()
+                                         ↓
+  Widget Functions → Check Input State → Add Geometry to DrawList
+                                         ↓
+  GuiContext.render() → GLRenderer.render()
+                                         ↓
+                       OpenGL → Screen
 ```
 
 ## Build System
@@ -184,21 +231,37 @@ rm -rf .zig-cache zig-out
    - Handle layout internally or accept positioned rect
 4. Import in `main.zig` and use in the main loop
 
-**Example pattern (from button.zig:4-14):**
+**Example pattern (button widget):**
 
 ```zig
-pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, color: shapes.Color) !bool {
-    try ctx.draw_list.addRect(rect, color);
+pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: ButtonOptions) !bool {
+    const is_hovered = ctx.input.isMouseInRect(rect);
+    const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
 
-    const metrics = ctx.font.measure(label);
+    // Render button background
+    try ctx.draw_list.addRoundedRect(rect, opts.border_radius, opts.color);
+
+    // Render centered text
+    const metrics = try ctx.measureText(label, opts.font_size);
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
-    const ty = rect.y + (rect.h - metrics.height) * 0.5;
+    const ty = rect.y + (rect.h - opts.font_size) * 0.5;
+    try ctx.addText(tx, ty, label, opts.font_size, opts.text_color);
 
-    try ctx.draw_list.addText(&ctx.font, tx, ty, label, .{ 0, 0, 0, 1 });
-
-    return false;
+    return is_clicked;
 }
 ```
+
+**Available Widgets:**
+
+1. **Button** (`widgets/button.zig`) - Clickable button with hover detection
+2. **Checkbox** (`widgets/checkbox.zig`) - Toggle checkbox with filled/outlined states
+3. **Text Input** (`widgets/input.zig`) - Full-featured single-line text input with:
+   - Cursor movement and blinking animation
+   - Text selection with visual highlighting
+   - Clipboard operations (copy/paste)
+   - Word-wise navigation (Ctrl/Alt + arrows)
+   - Horizontal scrolling for long text
+   - Platform-aware keyboard shortcuts
 
 ### Adding a New Renderer
 
@@ -210,12 +273,52 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, color: sha
 
 ### Input Handling
 
-- Input updates happen in `src/gui/input.zig`
-- Currently implemented: cursor position tracking
-- To add new input:
-  1. Add state to `GuiContext`
-  2. Update in `updateInput()`
-  3. Check state in widget functions
+All input is handled through the Input system in `src/gui/input.zig`:
+
+**Setting up callbacks:**
+
+```zig
+// In main.zig, register GLFW callbacks
+glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
+glfw.glfwSetCharCallback(window, input.charCallback);
+glfw.glfwSetKeyCallback(window, input.keyCallback);
+
+// Set GuiContext as window user pointer so callbacks can access it
+glfw.glfwSetWindowUserPointer(window, &gui);
+```
+
+**Using input in widgets:**
+
+```zig
+// Check mouse hover
+const is_hovered = ctx.input.isMouseInRect(rect);
+
+// Check for click this frame
+const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+
+// Check keyboard input
+if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_ENTER)) {
+    // Handle Enter key
+}
+
+// Access modifier keys
+if (ctx.input.ctrl_pressed and ctx.input.isKeyJustPressed(glfw.GLFW_KEY_C)) {
+    // Handle Ctrl+C
+}
+
+// Use platform-specific primary modifier
+if (ctx.input.primary_pressed and ctx.input.isKeyJustPressed(glfw.GLFW_KEY_S)) {
+    // Cmd+S on Mac, Ctrl+S on Windows/Linux
+}
+```
+
+**Per-frame cycle:**
+
+1. `ctx.newFrame()` - Resets per-frame input state
+2. GLFW callbacks fire during event polling
+3. `ctx.updateInput()` - Updates cursor position and mouse state
+4. Widget functions read input state
+5. Repeat next frame
 
 ### Error Handling
 
@@ -294,7 +397,7 @@ pub const Vertex = struct {
 
 ### Known Bugs (from source code)
 
-1. **glfwTerminate crash** (main.zig:16-17)
+1. **glfwTerminate crash** (main.zig)
 
    ```zig
    // BUG: glfwTerminate causing panic when window closes
@@ -304,25 +407,37 @@ pub const Vertex = struct {
    - Currently commented out to prevent crash
    - Needs investigation
 
-### Missing Features
+### Completed Features (Phase 1)
 
-- [ ] Mouse click/button input
-- [ ] Keyboard input
-- [ ] Additional widgets (text input, sliders, checkboxes, etc.)
+- [x] Mouse click/button input (left button)
+- [x] Keyboard input (character input, key presses)
+- [x] Modifier keys (Ctrl, Alt, Shift, Super)
+- [x] Text input widget with full editing support
+- [x] Checkbox widget
+- [x] Interactive buttons with hover/click detection
+- [x] Rounded rectangle rendering
+- [x] Multi-size font caching
+- [x] Multi-texture batching
+
+### Missing Features (Phase 2+)
+
+- [ ] Right/middle mouse button support
+- [ ] Mouse scroll/wheel input
+- [ ] Additional widgets (radio button, slider, dropdown, etc.)
 - [ ] Layout system (currently manual positioning)
 - [ ] Window/panel system
-- [ ] Themes/styling system
-- [ ] Multi-font support
-- [ ] Unicode support (currently ASCII only)
 - [ ] Clipping/scissor rectangles
+- [ ] Themes/styling system
+- [ ] Multi-font support (different font families)
+- [ ] Unicode support (currently ASCII only)
 - [ ] Z-ordering/depth
 
 ### Renderer Limitations
 
-- Single texture bound (font atlas only)
-- No batching by texture
-- No draw call optimization
+- Limited texture batching (functional but not fully optimized)
+- No draw call instancing
 - Full buffer upload each frame (no dirty tracking)
+- No frustum culling or off-screen widget culling
 
 ## Testing & Debugging
 
@@ -373,19 +488,18 @@ The renderer includes comprehensive error checking via `checkGlError()` calls af
 
 Based on git history (most recent first):
 
+- `8ebc964` - Copy/paste support for text input widget
+- `598d01f` - WIP input widget development
+- `0ab800f` - Modifier keys + text selection in input widget
+- `c6371f5` - Code simplification
+- `cca3cb8` - Basic input component implementation
 - `ec56cde` - Text rendering fully working
 - `a95857f` - Progress on text rendering
 - `aff2d11` - Shader fixes
 - `a3422aa` - Started font rendering implementation
 - `2672f3c` - OpenGL rendering infrastructure
-- `a53829f` - Rendering setup
-- `e062600` - Mouse input
-- `020e438` - GLAD loading
-- `ef62e3a` - Basic GLFW window
-- `f7d9fea` - Hello world
-- `91f7807` - Initial commit
 
-**Development pattern**: Incremental feature development, graphics foundation first, now building UI layer.
+**Development pattern**: Incremental feature development. Foundation (rendering, fonts) completed in Phase 1. Currently finishing Phase 1 (interactive widgets) with comprehensive text input support. Next focus: Phase 2 layout system.
 
 ## AI Assistant Guidelines
 
@@ -453,6 +567,6 @@ As the library grows, consider:
 
 ---
 
-**Last Updated**: 2025-11-20
-**Project Status**: Early Development / Prototype
+**Last Updated**: 2025-11-22
+**Project Status**: Phase 1 (~80% Complete) - Interactive widgets functional
 **Maintainer**: jackparsonss

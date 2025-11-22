@@ -6,11 +6,14 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ## Current State (v0.1 - Foundation)
 
-- ✅ OpenGL 4.5 Core renderer
+- ✅ OpenGL 3.3 Core renderer
 - ✅ TrueType font rendering (ASCII)
+- ✅ Multi-size font caching system
 - ✅ Basic button widget
-- ✅ Mouse cursor tracking
+- ✅ Mouse cursor tracking and click detection
 - ✅ Immediate-mode draw list architecture
+- ✅ Rounded rectangle rendering
+- ✅ Multi-texture batching support
 
 ---
 
@@ -20,25 +23,36 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ### Input System
 
-- [ ] Mouse button input (left, right, middle)
-- [ ] Mouse button state tracking (pressed, released, held)
+- [x] Mouse button input (left click)
+- [x] Mouse button state tracking (pressed, clicked)
 - [x] Keyboard input capture
 - [x] Keyboard modifiers (Shift, Ctrl, Alt, Super)
 - [x] Text input events for typing
+- [x] Platform-specific primary modifier (Cmd/Ctrl)
 - [ ] Mouse scroll/wheel input
+- [ ] Right and middle mouse button support
 
 ### Widget Interactivity
 
-- [ ] Button click detection and callbacks
-- [ ] Hover states for all widgets
-- [ ] Active/pressed visual states
-- [ ] Focus system for keyboard navigation
+- [x] Button click detection
+- [x] Hover detection for widgets
+- [x] Active/focused visual states
+- [x] Focus system for text input
+- [x] Text selection and editing
+- [ ] Focus system for keyboard navigation (Tab/Arrow keys)
 
 ### Essential Widgets
 
 - [x] Label (static text)
-- [x] Checkbox
-- [x] Text input (single line)
+- [x] Button (interactive)
+- [x] Checkbox (with click toggle)
+- [x] Text input (single line with full editing support)
+  - [x] Cursor movement (arrow keys, Home/End)
+  - [x] Text selection (Shift + navigation)
+  - [x] Word navigation (Ctrl/Alt + arrows)
+  - [x] Copy/Paste (Ctrl/Cmd + C/V)
+  - [x] Horizontal scrolling for long text
+  - [x] Backspace/Delete
 - [ ] Radio button
 - [ ] Slider (horizontal and vertical)
 - [ ] Image widget (texture display)
@@ -351,6 +365,6 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ---
 
-**Last Updated**: 2025-11-19
-**Current Phase**: Phase 1 (v0.2 - Core Interaction)
-**Next Milestone**: Mouse input and interactive buttons
+**Last Updated**: 2025-11-22
+**Current Phase**: Phase 1 (v0.2 - Core Interaction) - ~80% Complete
+**Next Milestone**: Layout system and container widgets (Phase 2)
