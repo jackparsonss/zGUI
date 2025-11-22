@@ -46,10 +46,9 @@ pub const Input = struct {
     keys_pressed: [512]bool,
     keys_just_pressed: [512]bool,
 
-    // Modifier keys
     ctrl_pressed: bool,
     alt_pressed: bool,
-    super_pressed: bool, // Command on Mac, Windows key on Windows
+    super_pressed: bool,
     shift_pressed: bool,
 
     pub fn init() Input {
@@ -82,12 +81,10 @@ pub const Input = struct {
     }
 
     pub fn update(self: *Input, window: Window) void {
-        // Update cursor position in window coordinates
         var window_x: f64 = 0;
         var window_y: f64 = 0;
         glfw.glfwGetCursorPos(window, &window_x, &window_y);
 
-        // Get window size and framebuffer size to calculate scale
         var window_width: i32 = 0;
         var window_height: i32 = 0;
         var fb_width: i32 = 0;
@@ -95,13 +92,11 @@ pub const Input = struct {
         glfw.glfwGetWindowSize(window, &window_width, &window_height);
         glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
 
-        // Convert from window coordinates to framebuffer coordinates
         const scale_x = @as(f64, @floatFromInt(fb_width)) / @as(f64, @floatFromInt(window_width));
         const scale_y = @as(f64, @floatFromInt(fb_height)) / @as(f64, @floatFromInt(window_height));
         self.cursor_x = window_x * scale_x;
         self.cursor_y = window_y * scale_y;
 
-        // Update mouse button state (for potential future use like drag detection)
         const current_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_LEFT);
         self.mouse_left_pressed = (current_state == glfw.GLFW_PRESS);
     }

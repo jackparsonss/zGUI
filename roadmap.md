@@ -22,9 +22,9 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 - [ ] Mouse button input (left, right, middle)
 - [ ] Mouse button state tracking (pressed, released, held)
-- [ ] Keyboard input capture
-- [ ] Keyboard modifiers (Shift, Ctrl, Alt, Super)
-- [ ] Text input events for typing
+- [x] Keyboard input capture
+- [x] Keyboard modifiers (Shift, Ctrl, Alt, Super)
+- [x] Text input events for typing
 - [ ] Mouse scroll/wheel input
 
 ### Widget Interactivity
@@ -38,7 +38,7 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 - [x] Label (static text)
 - [x] Checkbox
-- [ ] Text input (single line)
+- [x] Text input (single line)
 - [ ] Radio button
 - [ ] Slider (horizontal and vertical)
 - [ ] Image widget (texture display)

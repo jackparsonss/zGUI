@@ -13,13 +13,15 @@ pub const GuiContext = struct {
     input: Input,
     font_cache: FontCache,
     current_font_texture: u32,
+    window: c.Window,
 
-    pub fn init(allocator: std.mem.Allocator) !GuiContext {
+    pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         return GuiContext{
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
+            .window = window,
         };
     }
 

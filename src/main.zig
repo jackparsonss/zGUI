@@ -44,7 +44,7 @@ pub fn main() !void {
 
     var renderer = GLRenderer.init();
 
-    var gui = try GuiContext.init(allocator);
+    var gui = try GuiContext.init(allocator, window);
     defer gui.deinit();
 
     glfw.glfwSetWindowUserPointer(window, &gui);
