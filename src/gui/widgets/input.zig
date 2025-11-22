@@ -61,11 +61,11 @@ fn hasSelection(state: *const ActiveInputState, cursor_pos: usize) bool {
     return state.selection_start != null and state.selection_start.? != cursor_pos;
 }
 
-fn getSelectionRange(state: *const ActiveInputState, cursor_pos: usize) ?struct { start: usize, end: usize } {
+fn getSelectionRange(state: *const ActiveInputState, cursor_pos: usize, buffer_len: usize) ?struct { start: usize, end: usize } {
     if (state.selection_start) |sel_start| {
         if (sel_start != cursor_pos) {
-            const start = @min(sel_start, cursor_pos);
-            const end = @max(sel_start, cursor_pos);
+            const start = @min(@min(sel_start, cursor_pos), buffer_len);
+            const end = @min(@max(sel_start, cursor_pos), buffer_len);
             return .{ .start = start, .end = end };
         }
     }
@@ -97,14 +97,83 @@ fn inputInternal(
     else
         ActiveInputState.init();
 
-    if (!is_active and is_clicked) {
-        state.cursor_pos = buffer_len.*;
-    }
-
     if (is_clicked) {
         ctx.active_input_id = id;
         state.cursor_blink_time = glfw.glfwGetTime();
-    } else if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
+
+        // Position cursor based on click position
+        if (buffer_len.* > 0) {
+            const padding = 8.0;
+            const text_x = rect.x + padding;
+            const click_x: f32 = @floatCast(ctx.input.cursor_x);
+            const relative_x = click_x - text_x + state.scroll_offset;
+
+            // Find the character position closest to the click
+            var closest_pos: usize = 0;
+            var closest_dist: f32 = std.math.floatMax(f32);
+
+            // Check position before first character
+            if (relative_x < 0) {
+                state.cursor_pos = 0;
+            } else {
+                // Check each character position
+                for (0..buffer_len.* + 1) |i| {
+                    const text_slice = buffer[0..i];
+                    const metrics = try ctx.measureText(text_slice, opts.font_size);
+                    const dist = @abs(metrics.width - relative_x);
+
+                    if (dist < closest_dist) {
+                        closest_dist = dist;
+                        closest_pos = i;
+                    }
+                }
+
+                state.cursor_pos = closest_pos;
+            }
+        } else {
+            state.cursor_pos = 0;
+        }
+
+        // Start selection at click position
+        state.selection_start = state.cursor_pos;
+    }
+
+    // Handle mouse drag selection
+    if (is_active and is_hovered and ctx.input.mouse_left_pressed and !is_clicked) {
+        if (buffer_len.* > 0) {
+            const padding = 8.0;
+            const text_x = rect.x + padding;
+            const mouse_x: f32 = @floatCast(ctx.input.cursor_x);
+            const relative_x = mouse_x - text_x + state.scroll_offset;
+
+            // Find the character position closest to the mouse
+            var closest_pos: usize = 0;
+            var closest_dist: f32 = std.math.floatMax(f32);
+
+            // Check position before first character
+            if (relative_x < 0) {
+                state.cursor_pos = 0;
+            } else {
+                // Check each character position
+                for (0..buffer_len.* + 1) |i| {
+                    const text_slice = buffer[0..i];
+                    const metrics = try ctx.measureText(text_slice, opts.font_size);
+                    const dist = @abs(metrics.width - relative_x);
+
+                    if (dist < closest_dist) {
+                        closest_dist = dist;
+                        closest_pos = i;
+                    }
+                }
+
+                state.cursor_pos = closest_pos;
+            }
+
+            state.cursor_blink_time = glfw.glfwGetTime();
+        }
+    }
+
+    if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
         // Clear active state
         ctx.active_input_id = null;
         ctx.active_input_state = null;
@@ -139,7 +208,7 @@ fn inputInternal(
 
             if (is_valid and buffer_len.* < buffer.len) {
                 if (hasSelection(&state, state.cursor_pos)) {
-                    if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                    if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                         const bytes_to_remove = range.end - range.start;
                         std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
                         buffer_len.* -= bytes_to_remove;
@@ -162,7 +231,7 @@ fn inputInternal(
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_BACKSPACE)) {
             if (hasSelection(&state, state.cursor_pos)) {
-                if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                     const bytes_to_remove = range.end - range.start;
                     std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
                     buffer_len.* -= bytes_to_remove;
@@ -182,7 +251,7 @@ fn inputInternal(
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_DELETE)) {
             if (hasSelection(&state, state.cursor_pos)) {
-                if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                     const bytes_to_remove = range.end - range.start;
                     std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
                     buffer_len.* -= bytes_to_remove;
@@ -211,7 +280,7 @@ fn inputInternal(
                 new_pos = findPreviousWordBoundary(buffer[0..buffer_len.*], state.cursor_pos);
             } else {
                 if (hasSelection(&state, state.cursor_pos) and !ctx.input.shift_pressed) {
-                    if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                    if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                         new_pos = range.start;
                     }
                 } else if (state.cursor_pos > 0) {
@@ -239,7 +308,7 @@ fn inputInternal(
                 new_pos = findNextWordBoundary(buffer[0..buffer_len.*], buffer_len.*, state.cursor_pos);
             } else {
                 if (hasSelection(&state, state.cursor_pos) and !ctx.input.shift_pressed) {
-                    if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                    if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                         new_pos = range.end;
                     }
                 } else if (state.cursor_pos < buffer_len.*) {
@@ -284,7 +353,7 @@ fn inputInternal(
                 const slice = content[0..len];
 
                 if (hasSelection(&state, state.cursor_pos)) {
-                    if (getSelectionRange(&state, state.cursor_pos)) |range| {
+                    if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                         const bytes_to_remove = range.end - range.start;
                         std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
                         buffer_len.* -= bytes_to_remove;
@@ -318,7 +387,7 @@ fn inputInternal(
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_C) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
-            if (getSelectionRange(&state, state.cursor_pos)) |range| {
+            if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                 const content = buffer[range.start..range.end];
 
                 var buf: [4096:0]u8 = undefined;
@@ -331,7 +400,7 @@ fn inputInternal(
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_X) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
-            if (getSelectionRange(&state, state.cursor_pos)) |range| {
+            if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                 const content = buffer[range.start..range.end];
 
                 var buf: [4096:0]u8 = undefined;
@@ -409,7 +478,7 @@ fn inputInternal(
             }
         }
 
-        if (getSelectionRange(&state, state.cursor_pos)) |sel_range| {
+        if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |sel_range| {
             const text_before_sel_start = buffer[0..sel_range.start];
             const text_before_sel_end = buffer[0..sel_range.end];
 
