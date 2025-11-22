@@ -69,7 +69,9 @@ pub fn main() !void {
 
     var box = false;
 
-    var input_state = textInput.InputState.init();
+    var input_buffer: [256]u8 = undefined;
+    var input_len: usize = 0;
+
     while (glfw.glfwWindowShouldClose(window) == 0) {
         gui.newFrame();
 
@@ -93,18 +95,18 @@ pub fn main() !void {
             std.debug.print("Toggled Checkbox to: {}\n", .{box});
         }
 
+        if (try textInput.inputText(&gui, .{ .x = 300, .y = 170, .w = 300, .h = 40 }, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+            std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
+        }
+
         if (try btn.button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (box and try btn.button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, "Large Text", .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
+        if (box and try btn.button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
         if (try btn.button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
-        }
-
-        if (try textInput.textInput(&gui, .{ .x = 300, .y = 170, .w = 300, .h = 40 }, &input_state, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
-            std.debug.print("Text changed: {s}\n", .{input_state.getText()});
         }
 
         const right_btn_rect = shapes.Rect{ .x = 30, .y = 250, .w = 200, .h = 50 };

@@ -10,12 +10,33 @@ const Input = @import("input.zig").Input;
 const c = @import("c.zig");
 const Window = c.Window;
 
+// Internal state for the active text input widget
+pub const ActiveInputState = struct {
+    cursor_pos: usize,
+    scroll_offset: f32,
+    selection_start: ?usize,
+    cursor_blink_time: f64,
+
+    pub fn init() ActiveInputState {
+        return .{
+            .cursor_pos = 0,
+            .scroll_offset = 0.0,
+            .selection_start = null,
+            .cursor_blink_time = 0.0,
+        };
+    }
+};
+
 pub const GuiContext = struct {
     draw_list: DrawList,
     input: Input,
     font_cache: FontCache,
     current_font_texture: u32,
     window: c.Window,
+
+    // Active input widget state (only exists when an input is focused)
+    active_input_id: ?u64,
+    active_input_state: ?ActiveInputState,
 
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         return GuiContext{
@@ -24,6 +45,8 @@ pub const GuiContext = struct {
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
             .window = window,
+            .active_input_id = null,
+            .active_input_state = null,
         };
     }
 
