@@ -3,6 +3,7 @@ const build_options = @import("build_options");
 
 const btn = @import("gui/widgets/button.zig");
 const checkbox = @import("gui/widgets/checkbox.zig").checkbox;
+const textInput = @import("gui/widgets/input.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
 const input = @import("gui/input.zig");
@@ -48,6 +49,8 @@ pub fn main() !void {
 
     glfw.glfwSetWindowUserPointer(window, &gui);
     _ = glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
+    _ = glfw.glfwSetCharCallback(window, input.charCallback);
+    _ = glfw.glfwSetKeyCallback(window, input.keyCallback);
 
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
@@ -63,7 +66,11 @@ pub fn main() !void {
     }
 
     var box = false;
+
+    var input_state = textInput.InputState.init();
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        gui.newFrame();
+
         glfw.glfwPollEvents();
 
         var fb_width: i32 = 0;
@@ -78,7 +85,6 @@ pub fn main() !void {
             fps = 1.0 / delta_time;
         }
 
-        gui.newFrame();
         gui.updateInput(window);
 
         if (try checkbox(&gui, 200, 200, &box, .{})) {
@@ -93,6 +99,10 @@ pub fn main() !void {
         }
         if (try btn.button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
+        }
+
+        if (try textInput.textInput(&gui, .{ .x = 300, .y = 170, .w = 300, .h = 40 }, &input_state, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+            std.debug.print("Text changed: {s}\n", .{input_state.getText()});
         }
 
         if (build_options.debug) {

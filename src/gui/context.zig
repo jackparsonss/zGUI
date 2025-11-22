@@ -41,6 +41,14 @@ pub const GuiContext = struct {
         }
     }
 
+    pub fn handleChar(self: *GuiContext, codepoint: c_uint) void {
+        self.input.registerChar(codepoint);
+    }
+
+    pub fn handleKey(self: *GuiContext, key: c_int, action: c_int) void {
+        self.input.registerKey(key, action);
+    }
+
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
         renderer.render(self, width, height);
     }

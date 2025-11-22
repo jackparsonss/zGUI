@@ -15,12 +15,36 @@ pub fn mouseButtonCallback(window: c.Window, btn: c_int, action: c_int, mods: c_
     }
 }
 
+pub fn charCallback(window: c.Window, codepoint: c_uint) callconv(.c) void {
+    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    if (gui_ptr != null) {
+        const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
+        gui.handleChar(codepoint);
+    }
+}
+
+pub fn keyCallback(window: c.Window, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
+    _ = scancode;
+    _ = mods;
+    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    if (gui_ptr != null) {
+        const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
+        gui.handleKey(key, action);
+    }
+}
+
 pub const Input = struct {
     cursor_x: f64,
     cursor_y: f64,
     mouse_left_pressed: bool,
     mouse_left_clicked: bool,
     mouse_left_click_count: u32,
+
+    // Keyboard input
+    chars_buffer: [32]u32,
+    chars_count: usize,
+    keys_pressed: [512]bool,
+    keys_just_pressed: [512]bool,
 
     pub fn init() Input {
         return Input{
@@ -29,12 +53,18 @@ pub const Input = struct {
             .mouse_left_pressed = false,
             .mouse_left_clicked = false,
             .mouse_left_click_count = 0,
+            .chars_buffer = [_]u32{0} ** 32,
+            .chars_count = 0,
+            .keys_pressed = [_]bool{false} ** 512,
+            .keys_just_pressed = [_]bool{false} ** 512,
         };
     }
 
     pub fn beginFrame(self: *Input) void {
         self.mouse_left_clicked = self.mouse_left_click_count > 0;
         self.mouse_left_click_count = 0;
+        self.chars_count = 0;
+        @memset(&self.keys_just_pressed, false);
     }
 
     pub fn registerMouseClick(self: *Input) void {
@@ -70,5 +100,40 @@ pub const Input = struct {
         const mx = @as(f32, @floatCast(self.cursor_x));
         const my = @as(f32, @floatCast(self.cursor_y));
         return mx >= rect.x and mx <= rect.x + rect.w and my >= rect.y and my <= rect.y + rect.h;
+    }
+
+    pub fn registerChar(self: *Input, codepoint: u32) void {
+        if (self.chars_count < self.chars_buffer.len) {
+            self.chars_buffer[self.chars_count] = codepoint;
+            self.chars_count += 1;
+        }
+    }
+
+    pub fn registerKey(self: *Input, key: c_int, action: c_int) void {
+        if (key >= 0 and key < 512) {
+            const key_idx: usize = @intCast(key);
+            if (action == glfw.GLFW_PRESS or action == glfw.GLFW_REPEAT) {
+                self.keys_just_pressed[key_idx] = true;
+                self.keys_pressed[key_idx] = true;
+            } else if (action == glfw.GLFW_RELEASE) {
+                self.keys_pressed[key_idx] = false;
+            }
+        }
+    }
+
+    pub fn isKeyPressed(self: *const Input, key: c_int) bool {
+        if (key >= 0 and key < 512) {
+            const key_idx: usize = @intCast(key);
+            return self.keys_pressed[key_idx];
+        }
+        return false;
+    }
+
+    pub fn isKeyJustPressed(self: *const Input, key: c_int) bool {
+        if (key >= 0 and key < 512) {
+            const key_idx: usize = @intCast(key);
+            return self.keys_just_pressed[key_idx];
+        }
+        return false;
     }
 };
