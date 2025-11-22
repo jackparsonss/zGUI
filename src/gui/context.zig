@@ -1,4 +1,6 @@
+const builtin = @import("builtin");
 const std = @import("std");
+
 const FontCache = @import("text/font_cache.zig").FontCache;
 const TextMetrics = @import("text/font.zig").TextMetrics;
 const DrawList = @import("draw_list.zig").DrawList;
@@ -57,6 +59,12 @@ pub const GuiContext = struct {
         self.input.alt_pressed = (mods & glfw.GLFW_MOD_ALT) != 0;
         self.input.super_pressed = (mods & glfw.GLFW_MOD_SUPER) != 0;
         self.input.shift_pressed = (mods & glfw.GLFW_MOD_SHIFT) != 0;
+
+        if (comptime builtin.target.os.tag == .macos) {
+            self.input.primary_pressed = self.input.super_pressed;
+        } else {
+            self.input.primary_pressed = self.input.ctrl_pressed;
+        }
     }
 
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {

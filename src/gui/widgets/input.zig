@@ -276,17 +276,30 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_V)) {
-            if (comptime builtin.target.os.tag == .macos) {
-                if (ctx.input.super_pressed) {
-                    const content = glfw.glfwGetClipboardString(ctx.window);
-                    const len = std.mem.len(content);
-                    const slice = content[0..len];
+        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_V) and ctx.input.primary_pressed) {
+            const content = glfw.glfwGetClipboardString(ctx.window);
+            if (content != null) {
+                const len = std.mem.len(content);
+                const slice = content[0..len];
 
-                    if (state.cursor_pos + len > state.buffer.len) {
-                        return error.BufferTooSmall;
+                // Delete selection if it exists
+                if (state.hasSelection()) {
+                    state.deleteSelection();
+                    text_changed = true;
+                }
+
+                // Check if we have enough space in the buffer
+                if (state.len + len <= opts.max_length and state.len + len <= state.buffer.len) {
+                    // Make room for the pasted text by shifting existing text to the right
+                    if (state.cursor_pos < state.len) {
+                        std.mem.copyBackwards(
+                            u8,
+                            state.buffer[state.cursor_pos + len .. state.len + len],
+                            state.buffer[state.cursor_pos..state.len],
+                        );
                     }
 
+                    // Insert the pasted content
                     std.mem.copyForwards(
                         u8,
                         state.buffer[state.cursor_pos .. state.cursor_pos + len],
@@ -295,11 +308,21 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
 
                     state.cursor_pos += len;
                     state.len += len;
+                    text_changed = true;
+                    state.cursor_blink_time = glfw.glfwGetTime();
                 }
-            } else {
-                if (ctx.input.ctrl_pressed) {
-                    // const content = glfw.glfwGetClipboardString(ctx.window);
-                }
+            }
+        }
+
+        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_C) and ctx.input.primary_pressed and state.hasSelection()) {
+            if (state.getSelectionRange()) |range| {
+                const content = state.buffer[range.start..range.end];
+
+                var buf: [256:0]u8 = undefined;
+                @memcpy(buf[0..content.len], content);
+                buf[content.len] = 0;
+
+                glfw.glfwSetClipboardString(ctx.window, &buf);
             }
         }
     }

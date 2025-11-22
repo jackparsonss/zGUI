@@ -51,6 +51,9 @@ pub const Input = struct {
     super_pressed: bool,
     shift_pressed: bool,
 
+    // ctrl on windows/linux, command on macos
+    primary_pressed: bool,
+
     pub fn init() Input {
         return Input{
             .cursor_x = 0,
@@ -66,6 +69,7 @@ pub const Input = struct {
             .alt_pressed = false,
             .super_pressed = false,
             .shift_pressed = false,
+            .primary_pressed = false,
         };
     }
 
