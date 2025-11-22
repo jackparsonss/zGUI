@@ -16,6 +16,9 @@ pub const ActiveInputState = struct {
     scroll_offset: f32,
     selection_start: ?usize,
     cursor_blink_time: f64,
+    // For inputNumber: preserve the text buffer while editing
+    number_buffer: ?[32]u8,
+    number_buffer_len: usize,
 
     pub fn init() ActiveInputState {
         return .{
@@ -23,6 +26,8 @@ pub const ActiveInputState = struct {
             .scroll_offset = 0.0,
             .selection_start = null,
             .cursor_blink_time = 0.0,
+            .number_buffer = null,
+            .number_buffer_len = 0,
         };
     }
 };

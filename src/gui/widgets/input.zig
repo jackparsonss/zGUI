@@ -74,7 +74,19 @@ fn getSelectionRange(state: *const ActiveInputState, cursor_pos: usize) ?struct 
 
 pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: *usize, opts: InputOptions) !bool {
     const id = @intFromPtr(buffer.ptr);
+    return inputInternal(ctx, rect, id, buffer, buffer_len, opts, null);
+}
 
+// Internal shared function for input rendering and interaction
+fn inputInternal(
+    ctx: *GuiContext,
+    rect: shapes.Rect,
+    id: u64,
+    buffer: []u8,
+    buffer_len: *usize,
+    opts: InputOptions,
+    comptime charValidationFn: ?fn (char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool,
+) !bool {
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
 
@@ -93,6 +105,7 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
         ctx.active_input_id = id;
         state.cursor_blink_time = glfw.glfwGetTime();
     } else if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
+        // Clear active state
         ctx.active_input_id = null;
         ctx.active_input_state = null;
         return false;
@@ -117,8 +130,14 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
     if (is_active) {
         for (0..ctx.input.chars_count) |i| {
             const char = ctx.input.chars_buffer[i];
-            if (char >= 32 and char < 127 and buffer_len.* < buffer.len) {
-                // Delete selection if it exists
+            const char_u8: u8 = @intCast(char);
+
+            const is_valid = if (charValidationFn) |validationFn|
+                validationFn(char_u8, buffer[0..buffer_len.*], buffer_len.*, state.cursor_pos)
+            else
+                char >= 32 and char < 127;
+
+            if (is_valid and buffer_len.* < buffer.len) {
                 if (hasSelection(&state, state.cursor_pos)) {
                     if (getSelectionRange(&state, state.cursor_pos)) |range| {
                         const bytes_to_remove = range.end - range.start;
@@ -133,7 +152,7 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
                 if (state.cursor_pos < buffer_len.*) {
                     std.mem.copyBackwards(u8, buffer[state.cursor_pos + 1 .. buffer_len.* + 1], buffer[state.cursor_pos..buffer_len.*]);
                 }
-                buffer[state.cursor_pos] = @intCast(char);
+                buffer[state.cursor_pos] = char_u8;
                 state.cursor_pos += 1;
                 buffer_len.* += 1;
                 text_changed = true;
@@ -187,15 +206,11 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
 
             var new_pos: usize = state.cursor_pos;
             if (ctx.input.super_pressed) {
-                // Command (Mac) / Super + Left: jump to start
                 new_pos = 0;
             } else if (ctx.input.alt_pressed or ctx.input.ctrl_pressed) {
-                // Option/Alt/Control + Left: jump to previous word
                 new_pos = findPreviousWordBoundary(buffer[0..buffer_len.*], state.cursor_pos);
             } else {
-                // Normal left arrow: move one character
                 if (hasSelection(&state, state.cursor_pos) and !ctx.input.shift_pressed) {
-                    // If there's a selection and Shift is not pressed, move to start of selection
                     if (getSelectionRange(&state, state.cursor_pos)) |range| {
                         new_pos = range.start;
                     }
@@ -219,10 +234,8 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
 
             var new_pos: usize = state.cursor_pos;
             if (ctx.input.super_pressed) {
-                // Command (Mac) / Super + Right: jump to end
                 new_pos = buffer_len.*;
             } else if (ctx.input.alt_pressed or ctx.input.ctrl_pressed) {
-                // Option/Alt/Control + Right: jump to next word
                 new_pos = findNextWordBoundary(buffer[0..buffer_len.*], buffer_len.*, state.cursor_pos);
             } else {
                 if (hasSelection(&state, state.cursor_pos) and !ctx.input.shift_pressed) {
@@ -270,7 +283,6 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
                 const len = std.mem.len(content);
                 const slice = content[0..len];
 
-                // Delete selection if it exists
                 if (hasSelection(&state, state.cursor_pos)) {
                     if (getSelectionRange(&state, state.cursor_pos)) |range| {
                         const bytes_to_remove = range.end - range.start;
@@ -282,9 +294,7 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
                     }
                 }
 
-                // Check if we have enough space in the buffer
                 if (buffer_len.* + len <= buffer.len) {
-                    // Make room for the pasted text by shifting existing text to the right
                     if (state.cursor_pos < buffer_len.*) {
                         std.mem.copyBackwards(
                             u8,
@@ -293,7 +303,6 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
                         );
                     }
 
-                    // Insert the pasted content
                     std.mem.copyForwards(
                         u8,
                         buffer[state.cursor_pos .. state.cursor_pos + len],
@@ -332,7 +341,6 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
 
                 glfw.glfwSetClipboardString(ctx.window, &buf);
 
-                // Delete the selection after copying
                 const bytes_to_remove = range.end - range.start;
                 std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
                 buffer_len.* -= bytes_to_remove;
@@ -344,7 +352,6 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_A) and ctx.input.primary_pressed) {
-            // Select all text
             if (buffer_len.* > 0) {
                 state.selection_start = 0;
                 state.cursor_pos = buffer_len.*;
@@ -365,10 +372,8 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
 
         const cursor_margin = 10.0;
         if (cursor_x_unscrolled - state.scroll_offset > available_width - cursor_margin) {
-            // Cursor is past the right edge, scroll right
             state.scroll_offset = cursor_x_unscrolled - available_width + cursor_margin;
         } else if (cursor_x_unscrolled - state.scroll_offset < cursor_margin) {
-            // Cursor is past the left edge, scroll left
             state.scroll_offset = @max(0.0, cursor_x_unscrolled - cursor_margin);
         }
     } else {
@@ -419,7 +424,7 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
                 const highlight_w = @min(sel_x_end, rect.x + rect.w - padding) - highlight_x;
 
                 if (highlight_w > 0) {
-                    const selection_color: u32 = 0x4A90E2AA; // Semi-transparent blue
+                    const selection_color: u32 = 0x4A90E2AA;
                     const selection_rect = shapes.Rect{
                         .x = highlight_x,
                         .y = text_y,
@@ -468,4 +473,105 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
     }
 
     return text_changed;
+}
+
+fn isValidFloatChar(char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool {
+    if (char >= '0' and char <= '9') return true;
+
+    if (char == '.') {
+        for (buffer[0..buffer_len]) |ch| {
+            if (ch == '.') return false;
+        }
+        return true;
+    }
+
+    if (char == '-') {
+        return cursor_pos == 0 and buffer_len == 0;
+    }
+
+    return false;
+}
+
+fn isValidIntChar(char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool {
+    _ = buffer;
+    _ = buffer_len;
+
+    if (char >= '0' and char <= '9') return true;
+
+    if (char == '-') {
+        return cursor_pos == 0;
+    }
+
+    return false;
+}
+
+fn inputNumberGeneric(
+    ctx: *GuiContext,
+    rect: shapes.Rect,
+    value_ptr: *anyopaque,
+    comptime T: type,
+    opts: InputOptions,
+    comptime validationFn: fn (char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool,
+) !bool {
+    var temp_buffer: [32]u8 = undefined;
+    var temp_len: usize = 0;
+
+    const value: *T = @ptrCast(@alignCast(value_ptr));
+    const id = @intFromPtr(value) ^ 0x4e554d42;
+    const is_active = if (ctx.active_input_id) |active_id| active_id == id else false;
+
+    // If already active and we have a preserved buffer, use it
+    if (is_active and ctx.active_input_state != null) {
+        if (ctx.active_input_state.?.number_buffer) |buf| {
+            temp_buffer = buf;
+            temp_len = ctx.active_input_state.?.number_buffer_len;
+        } else {
+            // First frame after activation, initialize from value
+            temp_len = (try std.fmt.bufPrint(&temp_buffer, "{d}", .{value.*})).len;
+        }
+    } else {
+        // Not active, format the current value
+        temp_len = (try std.fmt.bufPrint(&temp_buffer, "{d}", .{value.*})).len;
+    }
+
+    const changed = try inputInternal(ctx, rect, id, &temp_buffer, &temp_len, opts, validationFn);
+
+    // Save the buffer back to state if active
+    if (ctx.active_input_id != null and ctx.active_input_id.? == id) {
+        if (ctx.active_input_state) |*state| {
+            state.number_buffer = temp_buffer;
+            state.number_buffer_len = temp_len;
+        }
+    }
+
+    if (changed) {
+        if (temp_len > 0) {
+            const info = @typeInfo(T);
+            switch (info) {
+                .float => value.* = std.fmt.parseFloat(T, temp_buffer[0..temp_len]) catch value.*,
+                .int => value.* = std.fmt.parseInt(T, temp_buffer[0..temp_len], 10) catch value.*,
+                else => unreachable,
+            }
+        } else {
+            value.* = 0;
+        }
+    }
+
+    return changed;
+}
+
+pub fn inputF32(ctx: *GuiContext, rect: shapes.Rect, value: *f32, opts: InputOptions) !bool {
+    return inputNumberGeneric(ctx, rect, value, f32, opts, isValidFloatChar);
+}
+
+pub fn inputF64(ctx: *GuiContext, rect: shapes.Rect, value: *f64, opts: InputOptions) !bool {
+    return inputNumberGeneric(ctx, rect, value, f64, opts, isValidFloatChar);
+}
+
+pub fn inputI32(ctx: *GuiContext, rect: shapes.Rect, value: *i32, opts: InputOptions) !bool {
+    return inputNumberGeneric(ctx, rect, value, i32, opts, isValidIntChar);
+}
+
+pub fn inputI64(ctx: *GuiContext, rect: shapes.Rect, value: *i64, opts: InputOptions) !bool {
+    return inputNumberGeneric(ctx, rect, value, i64, opts, isValidIntChar);
 }
