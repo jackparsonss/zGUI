@@ -325,6 +325,32 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
                 glfw.glfwSetClipboardString(ctx.window, &buf);
             }
         }
+
+        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_X) and ctx.input.primary_pressed and state.hasSelection()) {
+            if (state.getSelectionRange()) |range| {
+                const content = state.buffer[range.start..range.end];
+
+                var buf: [256:0]u8 = undefined;
+                @memcpy(buf[0..content.len], content);
+                buf[content.len] = 0;
+
+                glfw.glfwSetClipboardString(ctx.window, &buf);
+
+                // Delete the selection after copying
+                state.deleteSelection();
+                text_changed = true;
+                state.cursor_blink_time = glfw.glfwGetTime();
+            }
+        }
+
+        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_A) and ctx.input.primary_pressed) {
+            // Select all text
+            if (state.len > 0) {
+                state.selection_start = 0;
+                state.cursor_pos = state.len;
+                state.cursor_blink_time = glfw.glfwGetTime();
+            }
+        }
     }
 
     const padding = 8.0;
