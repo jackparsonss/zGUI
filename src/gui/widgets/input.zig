@@ -20,6 +20,7 @@ pub const InputState = struct {
     is_focused: bool,
     cursor_blink_time: f64,
     scroll_offset: f32,
+    selection_start: ?usize, // null means no selection
 
     pub fn init() InputState {
         return InputState{
@@ -29,6 +30,7 @@ pub const InputState = struct {
             .is_focused = false,
             .cursor_blink_time = 0.0,
             .scroll_offset = 0.0,
+            .selection_start = null,
         };
     }
 
@@ -39,6 +41,79 @@ pub const InputState = struct {
     pub fn clear(self: *InputState) void {
         self.len = 0;
         self.cursor_pos = 0;
+    }
+
+    fn isWordBoundary(char: u8) bool {
+        return char == ' ' or char == '\t' or char == '\n' or char == '.' or char == ',' or
+               char == ';' or char == ':' or char == '!' or char == '?' or char == '(' or
+               char == ')' or char == '[' or char == ']' or char == '{' or char == '}' or
+               char == '-' or char == '_' or char == '/' or char == '\\';
+    }
+
+    pub fn findPreviousWordBoundary(self: *const InputState) usize {
+        if (self.cursor_pos == 0) return 0;
+
+        var pos = self.cursor_pos;
+
+        // Skip any whitespace/punctuation at current position
+        while (pos > 0 and isWordBoundary(self.buffer[pos - 1])) {
+            pos -= 1;
+        }
+
+        // Move back to the start of the word
+        while (pos > 0 and !isWordBoundary(self.buffer[pos - 1])) {
+            pos -= 1;
+        }
+
+        return pos;
+    }
+
+    pub fn findNextWordBoundary(self: *const InputState) usize {
+        if (self.cursor_pos >= self.len) return self.len;
+
+        var pos = self.cursor_pos;
+
+        // Skip any whitespace/punctuation at current position
+        while (pos < self.len and isWordBoundary(self.buffer[pos])) {
+            pos += 1;
+        }
+
+        // Move forward to the end of the word
+        while (pos < self.len and !isWordBoundary(self.buffer[pos])) {
+            pos += 1;
+        }
+
+        return pos;
+    }
+
+    pub fn hasSelection(self: *const InputState) bool {
+        return self.selection_start != null and self.selection_start.? != self.cursor_pos;
+    }
+
+    pub fn getSelectionRange(self: *const InputState) ?struct { start: usize, end: usize } {
+        if (self.selection_start) |sel_start| {
+            if (sel_start != self.cursor_pos) {
+                const start = @min(sel_start, self.cursor_pos);
+                const end = @max(sel_start, self.cursor_pos);
+                return .{ .start = start, .end = end };
+            }
+        }
+        return null;
+    }
+
+    pub fn clearSelection(self: *InputState) void {
+        self.selection_start = null;
+    }
+
+    pub fn deleteSelection(self: *InputState) void {
+        if (self.getSelectionRange()) |range| {
+            // Remove the selected text
+            const bytes_to_remove = range.end - range.start;
+            std.mem.copyForwards(u8, self.buffer[range.start .. self.len - bytes_to_remove], self.buffer[range.end..self.len]);
+            self.len -= bytes_to_remove;
+            self.cursor_pos = range.start;
+            self.selection_start = null;
+        }
     }
 };
 
@@ -73,6 +148,12 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
         for (0..ctx.input.chars_count) |i| {
             const char = ctx.input.chars_buffer[i];
             if (char >= 32 and char < 127 and state.len < opts.max_length and state.len < state.buffer.len) {
+                // Delete selection if it exists
+                if (state.hasSelection()) {
+                    state.deleteSelection();
+                    text_changed = true;
+                }
+
                 if (state.cursor_pos < state.len) {
                     std.mem.copyBackwards(u8, state.buffer[state.cursor_pos + 1 .. state.len + 1], state.buffer[state.cursor_pos..state.len]);
                 }
@@ -85,7 +166,11 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_BACKSPACE)) {
-            if (state.cursor_pos > 0) {
+            if (state.hasSelection()) {
+                state.deleteSelection();
+                text_changed = true;
+                state.cursor_blink_time = glfw.glfwGetTime();
+            } else if (state.cursor_pos > 0) {
                 std.mem.copyForwards(u8, state.buffer[state.cursor_pos - 1 .. state.len - 1], state.buffer[state.cursor_pos..state.len]);
                 state.cursor_pos -= 1;
                 state.len -= 1;
@@ -95,7 +180,11 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_DELETE)) {
-            if (state.cursor_pos < state.len) {
+            if (state.hasSelection()) {
+                state.deleteSelection();
+                text_changed = true;
+                state.cursor_blink_time = glfw.glfwGetTime();
+            } else if (state.cursor_pos < state.len) {
                 std.mem.copyForwards(u8, state.buffer[state.cursor_pos .. state.len - 1], state.buffer[state.cursor_pos + 1 .. state.len]);
                 state.len -= 1;
                 text_changed = true;
@@ -103,28 +192,105 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             }
         }
 
+        // Left arrow key navigation
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_LEFT)) {
-            if (state.cursor_pos > 0) {
-                state.cursor_pos -= 1;
-                state.cursor_blink_time = glfw.glfwGetTime();
+            // Start selection if Shift is pressed and no selection exists
+            if (ctx.input.shift_pressed and state.selection_start == null) {
+                state.selection_start = state.cursor_pos;
+            }
+
+            // Calculate new cursor position based on modifiers
+            var new_pos: usize = state.cursor_pos;
+            if (ctx.input.super_pressed) {
+                // Command (Mac) / Super + Left: jump to start
+                new_pos = 0;
+            } else if (ctx.input.ctrl_pressed) {
+                // Ctrl + Left: On Windows, jump to start
+                new_pos = 0;
+            } else if (ctx.input.alt_pressed) {
+                // Option/Alt + Left: jump to previous word
+                new_pos = state.findPreviousWordBoundary();
+            } else {
+                // Normal left arrow: move one character
+                if (state.hasSelection() and !ctx.input.shift_pressed) {
+                    // If there's a selection and Shift is not pressed, move to start of selection
+                    if (state.getSelectionRange()) |range| {
+                        new_pos = range.start;
+                    }
+                } else if (state.cursor_pos > 0) {
+                    new_pos = state.cursor_pos - 1;
+                }
+            }
+
+            state.cursor_pos = new_pos;
+            state.cursor_blink_time = glfw.glfwGetTime();
+
+            // Clear selection if Shift is not pressed
+            if (!ctx.input.shift_pressed) {
+                state.clearSelection();
             }
         }
 
+        // Right arrow key navigation
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_RIGHT)) {
-            if (state.cursor_pos < state.len) {
-                state.cursor_pos += 1;
-                state.cursor_blink_time = glfw.glfwGetTime();
+            // Start selection if Shift is pressed and no selection exists
+            if (ctx.input.shift_pressed and state.selection_start == null) {
+                state.selection_start = state.cursor_pos;
+            }
+
+            // Calculate new cursor position based on modifiers
+            var new_pos: usize = state.cursor_pos;
+            if (ctx.input.super_pressed) {
+                // Command (Mac) / Super + Right: jump to end
+                new_pos = state.len;
+            } else if (ctx.input.ctrl_pressed) {
+                // Ctrl + Right: On Windows, jump to end
+                new_pos = state.len;
+            } else if (ctx.input.alt_pressed) {
+                // Option/Alt + Right: jump to next word
+                new_pos = state.findNextWordBoundary();
+            } else {
+                // Normal right arrow: move one character
+                if (state.hasSelection() and !ctx.input.shift_pressed) {
+                    // If there's a selection and Shift is not pressed, move to end of selection
+                    if (state.getSelectionRange()) |range| {
+                        new_pos = range.end;
+                    }
+                } else if (state.cursor_pos < state.len) {
+                    new_pos = state.cursor_pos + 1;
+                }
+            }
+
+            state.cursor_pos = new_pos;
+            state.cursor_blink_time = glfw.glfwGetTime();
+
+            // Clear selection if Shift is not pressed
+            if (!ctx.input.shift_pressed) {
+                state.clearSelection();
             }
         }
 
+        // Home/End keys
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_HOME)) {
+            if (ctx.input.shift_pressed and state.selection_start == null) {
+                state.selection_start = state.cursor_pos;
+            }
             state.cursor_pos = 0;
             state.cursor_blink_time = glfw.glfwGetTime();
+            if (!ctx.input.shift_pressed) {
+                state.clearSelection();
+            }
         }
 
         if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_END)) {
+            if (ctx.input.shift_pressed and state.selection_start == null) {
+                state.selection_start = state.cursor_pos;
+            }
             state.cursor_pos = state.len;
             state.cursor_blink_time = glfw.glfwGetTime();
+            if (!ctx.input.shift_pressed) {
+                state.clearSelection();
+            }
         }
     }
 
@@ -176,6 +342,35 @@ pub fn textInput(ctx: *GuiContext, rect: shapes.Rect, state: *InputState, opts: 
             if (metrics.width - state.scroll_offset > available_width) {
                 visible_end = i;
                 break;
+            }
+        }
+
+        // Draw selection highlight if there's a selection
+        if (state.getSelectionRange()) |sel_range| {
+            const text_before_sel_start = state.buffer[0..sel_range.start];
+            const text_before_sel_end = state.buffer[0..sel_range.end];
+
+            const metrics_start = try ctx.measureText(text_before_sel_start, opts.font_size);
+            const metrics_end = try ctx.measureText(text_before_sel_end, opts.font_size);
+
+            const sel_x_start = text_x + metrics_start.width - state.scroll_offset;
+            const sel_x_end = text_x + metrics_end.width - state.scroll_offset;
+
+            // Only draw selection if it's visible
+            if (sel_x_end >= text_x and sel_x_start <= text_x + available_width) {
+                const highlight_x = @max(sel_x_start, rect.x);
+                const highlight_w = @min(sel_x_end, rect.x + rect.w - padding) - highlight_x;
+
+                if (highlight_w > 0) {
+                    const selection_color: u32 = 0x4A90E2AA; // Semi-transparent blue
+                    const selection_rect = shapes.Rect{
+                        .x = highlight_x,
+                        .y = text_y,
+                        .w = highlight_w,
+                        .h = opts.font_size,
+                    };
+                    try ctx.draw_list.addRect(selection_rect, selection_color);
+                }
             }
         }
 

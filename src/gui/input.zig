@@ -25,11 +25,11 @@ pub fn charCallback(window: c.Window, codepoint: c_uint) callconv(.c) void {
 
 pub fn keyCallback(window: c.Window, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
     _ = scancode;
-    _ = mods;
     const gui_ptr = glfw.glfwGetWindowUserPointer(window);
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.handleKey(key, action);
+        gui.handleModifiers(mods);
     }
 }
 
@@ -46,6 +46,12 @@ pub const Input = struct {
     keys_pressed: [512]bool,
     keys_just_pressed: [512]bool,
 
+    // Modifier keys
+    ctrl_pressed: bool,
+    alt_pressed: bool,
+    super_pressed: bool, // Command on Mac, Windows key on Windows
+    shift_pressed: bool,
+
     pub fn init() Input {
         return Input{
             .cursor_x = 0,
@@ -57,6 +63,10 @@ pub const Input = struct {
             .chars_count = 0,
             .keys_pressed = [_]bool{false} ** 512,
             .keys_just_pressed = [_]bool{false} ** 512,
+            .ctrl_pressed = false,
+            .alt_pressed = false,
+            .super_pressed = false,
+            .shift_pressed = false,
         };
     }
 

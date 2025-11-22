@@ -49,6 +49,14 @@ pub const GuiContext = struct {
         self.input.registerKey(key, action);
     }
 
+    pub fn handleModifiers(self: *GuiContext, mods: c_int) void {
+        const glfw = c.glfw;
+        self.input.ctrl_pressed = (mods & glfw.GLFW_MOD_CONTROL) != 0;
+        self.input.alt_pressed = (mods & glfw.GLFW_MOD_ALT) != 0;
+        self.input.super_pressed = (mods & glfw.GLFW_MOD_SUPER) != 0;
+        self.input.shift_pressed = (mods & glfw.GLFW_MOD_SHIFT) != 0;
+    }
+
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
         renderer.render(self, width, height);
     }
