@@ -1,5 +1,4 @@
 const std = @import("std");
-const glad = @import("c.zig").glad;
 const shapes = @import("shapes.zig");
 const Font = @import("text/font.zig").Font;
 

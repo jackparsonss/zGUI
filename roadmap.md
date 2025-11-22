@@ -36,11 +36,11 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ### Essential Widgets
 
-- [ ] Label (static text)
-- [ ] Checkbox
+- [x] Label (static text)
+- [x] Checkbox
+- [ ] Text input (single line)
 - [ ] Radio button
 - [ ] Slider (horizontal and vertical)
-- [ ] Text input (single line)
 - [ ] Image widget (texture display)
 
 ### Testing & Examples
