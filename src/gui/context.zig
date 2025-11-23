@@ -7,6 +7,7 @@ const DrawList = @import("draw_list.zig").DrawList;
 const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
 const shapes = @import("shapes.zig");
 const Input = @import("input.zig").Input;
+const imageWidget = @import("widgets/image.zig");
 const c = @import("c.zig");
 const Window = c.Window;
 
@@ -38,18 +39,22 @@ pub const GuiContext = struct {
     font_cache: FontCache,
     current_font_texture: u32,
     window: c.Window,
+    checkmark_image: imageWidget.Image,
 
     // Active input widget state (only exists when an input is focused)
     active_input_id: ?u64,
     active_input_state: ?ActiveInputState,
 
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
+        const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
+
         return GuiContext{
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
             .window = window,
+            .checkmark_image = checkmark_image,
             .active_input_id = null,
             .active_input_state = null,
         };
@@ -123,5 +128,6 @@ pub const GuiContext = struct {
     pub fn deinit(self: *GuiContext) void {
         self.draw_list.deinit();
         self.font_cache.deinit();
+        self.checkmark_image.deinit();
     }
 };

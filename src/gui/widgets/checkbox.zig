@@ -1,5 +1,6 @@
 const GuiContext = @import("../context.zig").GuiContext;
 const shapes = @import("../shapes.zig");
+const imageWidget = @import("image.zig");
 
 pub const CheckboxOptions = struct {
     size: f32 = 24.0,
@@ -18,17 +19,21 @@ pub fn checkbox(ctx: *GuiContext, x: f32, y: f32, checked: *bool, opts: Checkbox
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
-
     if (is_clicked) {
         checked.* = !checked.*;
     }
 
+    try ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, opts.color);
     if (checked.*) {
-        // Draw filled rounded rect
-        try ctx.draw_list.addRoundedRect(rect, opts.border_radius, opts.color);
-    } else {
-        // Draw outlined rounded rect
-        try ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, opts.color);
+        const padding = opts.size * 0.15;
+        const checkmark_size = opts.size - (padding * 2);
+        const checkmark_x = x + padding;
+        const checkmark_y = y + padding;
+
+        try imageWidget.image(ctx, checkmark_x, checkmark_y, &ctx.checkmark_image, .{
+            .width = checkmark_size,
+            .height = checkmark_size,
+        });
     }
 
     return is_clicked;
