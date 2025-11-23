@@ -5,7 +5,14 @@ RUN apk add --no-cache \
     build-base \
     curl \
     cmake \
-    git
+    git \
+    linux-headers \
+    mesa-dev \
+    libx11-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxcursor-dev \
+    libxi-dev
 
 # Install Zig
 ARG ZIG_VERSION=0.15.2

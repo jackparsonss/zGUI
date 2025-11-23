@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: jackpar/zig:0.15.2
+    container: jackpar/x11-zig:0.15.2
 
     steps:
     - name: Checkout code
