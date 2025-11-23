@@ -72,7 +72,7 @@ pub const Font = struct {
         @memset(bitmap[0..], 0);
 
         var packer: stb.stbtt_pack_context = undefined;
-        if (stb.stbtt_PackBegin(&packer, bitmap.ptr, tex_width, tex_height, 0, 1, null) == 0) {
+        if (stb.stbtt_PackBegin(&packer, bitmap.ptr, tex_width, tex_height, 0, 3, null) == 0) {
             return LoadError.PackFailed;
         }
 
