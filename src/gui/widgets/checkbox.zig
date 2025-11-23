@@ -9,13 +9,13 @@ pub const CheckboxOptions = struct {
     border_thickness: f32 = 2.0,
 };
 
-pub fn checkbox(ctx: *GuiContext, x: f32, y: f32, checked: *bool, opts: CheckboxOptions) !bool {
-    const rect = shapes.Rect{
-        .x = x,
-        .y = y,
-        .w = opts.size,
-        .h = opts.size,
+pub fn checkbox(ctx: *GuiContext, checked: *bool, opts: CheckboxOptions) !bool {
+    // Widget must be inside a layout
+    const layout = ctx.getCurrentLayout() orelse {
+        @panic("checkbox widget must be used inside a layout");
     };
+
+    const rect = layout.allocateSpace(opts.size, opts.size);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
@@ -27,10 +27,10 @@ pub fn checkbox(ctx: *GuiContext, x: f32, y: f32, checked: *bool, opts: Checkbox
     if (checked.*) {
         const padding = opts.size * 0.15;
         const checkmark_size = opts.size - (padding * 2);
-        const checkmark_x = x + padding;
-        const checkmark_y = y + padding;
+        const checkmark_x = rect.x + padding;
+        const checkmark_y = rect.y + padding;
 
-        try imageWidget.image(ctx, checkmark_x, checkmark_y, &ctx.checkmark_image, .{
+        try imageWidget.imageAt(ctx, checkmark_x, checkmark_y, &ctx.checkmark_image, .{
             .width = checkmark_size,
             .height = checkmark_size,
         });

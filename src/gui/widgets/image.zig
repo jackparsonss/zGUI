@@ -73,7 +73,28 @@ pub const Options = struct {
     tint: shapes.Color = 0xFFFFFFFF,
 };
 
-pub fn image(ctx: *GuiContext, x: f32, y: f32, img: *const Image, opts: Options) !void {
+pub fn image(ctx: *GuiContext, img: *const Image, opts: Options) !void {
+    const width = opts.width orelse @as(f32, @floatFromInt(img.width));
+    const height = opts.height orelse @as(f32, @floatFromInt(img.height));
+
+    // Widget must be inside a layout
+    const layout = ctx.getCurrentLayout() orelse {
+        @panic("image widget must be used inside a layout");
+    };
+
+    const rect = layout.allocateSpace(width, height);
+
+    try ctx.draw_list.setTexture(img.texture);
+    try ctx.draw_list.addRectUV(
+        rect,
+        .{ 0.0, 0.0 }, // UV min (top-left)
+        .{ 1.0, 1.0 }, // UV max (bottom-right)
+        opts.tint,
+    );
+}
+
+// Internal helper for widgets that need to position images manually (like checkbox)
+pub fn imageAt(ctx: *GuiContext, x: f32, y: f32, img: *const Image, opts: Options) !void {
     const width = opts.width orelse @as(f32, @floatFromInt(img.width));
     const height = opts.height orelse @as(f32, @floatFromInt(img.height));
 

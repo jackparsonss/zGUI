@@ -8,6 +8,7 @@ const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
 const shapes = @import("shapes.zig");
 const Input = @import("input.zig").Input;
 const imageWidget = @import("widgets/image.zig");
+const Layout = @import("layout.zig").Layout;
 const c = @import("c.zig");
 const Window = c.Window;
 
@@ -45,10 +46,14 @@ pub const GuiContext = struct {
     active_input_id: ?u64,
     active_input_state: ?ActiveInputState,
 
+    // Layout stack for managing nested layouts
+    layout_stack: std.ArrayList(Layout),
+    allocator: std.mem.Allocator,
+
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
 
-        return GuiContext{
+        var ctx = GuiContext{
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
@@ -57,12 +62,18 @@ pub const GuiContext = struct {
             .checkmark_image = checkmark_image,
             .active_input_id = null,
             .active_input_state = null,
+            .layout_stack = undefined,
+            .allocator = allocator,
         };
+        ctx.layout_stack = std.ArrayList(Layout).initCapacity(allocator, 0) catch .empty;
+        return ctx;
     }
 
     pub fn newFrame(self: *GuiContext) void {
         self.input.beginFrame();
         self.draw_list.clear();
+        // Clear layout stack at the start of each frame
+        self.layout_stack.clearRetainingCapacity();
     }
 
     pub fn updateInput(self: *GuiContext, window: Window) void {
@@ -129,5 +140,12 @@ pub const GuiContext = struct {
         self.draw_list.deinit();
         self.font_cache.deinit();
         self.checkmark_image.deinit();
+        self.layout_stack.deinit(self.allocator);
+    }
+
+    // Get the current active layout (if any)
+    pub fn getCurrentLayout(self: *GuiContext) ?*Layout {
+        if (self.layout_stack.items.len == 0) return null;
+        return &self.layout_stack.items[self.layout_stack.items.len - 1];
     }
 };

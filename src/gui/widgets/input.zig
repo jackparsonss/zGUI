@@ -12,6 +12,8 @@ pub const InputOptions = struct {
     text_color: shapes.Color = 0x000000FF,
     border_radius: f32 = 8.0,
     border_thickness: f32 = 2.0,
+    width: f32 = 200.0,
+    height: f32 = 40.0,
 };
 
 fn isWordBoundary(char: u8) bool {
@@ -72,7 +74,13 @@ fn getSelectionRange(state: *const ActiveInputState, cursor_pos: usize, buffer_l
     return null;
 }
 
-pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: *usize, opts: InputOptions) !bool {
+pub fn inputText(ctx: *GuiContext, buffer: []u8, buffer_len: *usize, opts: InputOptions) !bool {
+    // Widget must be inside a layout
+    const layout = ctx.getCurrentLayout() orelse {
+        @panic("inputText widget must be used inside a layout");
+    };
+
+    const rect = layout.allocateSpace(opts.width, opts.height);
     const id = @intFromPtr(buffer.ptr);
     return inputInternal(ctx, rect, id, buffer, buffer_len, opts, null);
 }
@@ -597,7 +605,13 @@ fn inputNumberGeneric(
     return changed;
 }
 
-pub fn inputNumber(ctx: *GuiContext, rect: shapes.Rect, value: anytype, opts: InputOptions) !bool {
+pub fn inputNumber(ctx: *GuiContext, value: anytype, opts: InputOptions) !bool {
+    // Widget must be inside a layout
+    const layout = ctx.getCurrentLayout() orelse {
+        @panic("inputNumber widget must be used inside a layout");
+    };
+
+    const rect = layout.allocateSpace(opts.width, opts.height);
     const T = @TypeOf(value);
     const type_info = @typeInfo(T);
 

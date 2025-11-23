@@ -28,15 +28,17 @@ pub const Options = struct {
     padding: f32 = 16.0,
 };
 
-pub fn button(ctx: *GuiContext, x: f32, y: f32, label: []const u8, opts: Options) !bool {
+pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
     const metrics = try ctx.measureText(label, opts.font_size);
 
-    const rect = shapes.Rect{
-        .x = x,
-        .y = y,
-        .w = metrics.width + opts.padding * 2,
-        .h = metrics.height + opts.padding * 2,
+    // Widget must be inside a layout
+    const layout = ctx.getCurrentLayout() orelse {
+        @panic("button widget must be used inside a layout");
     };
+
+    const width = metrics.width + opts.padding * 2;
+    const height = metrics.height + opts.padding * 2;
+    const rect = layout.allocateSpace(width, height);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
