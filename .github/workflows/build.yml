@@ -18,7 +18,6 @@ jobs:
       uses: mlugg/setup-zig@v1
       with:
         version: 0.15
-        mirror: 'https://zig.squirl.dev'
 
     - name: Install dependencies
       run: |
