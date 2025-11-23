@@ -104,19 +104,19 @@ pub fn main() !void {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }
 
-        if (try textInput.inputF32(&gui, .{ .x = 600, .y = 220, .w = 200, .h = 40 }, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+        if (try textInput.inputNumber(&gui, .{ .x = 600, .y = 220, .w = 200, .h = 40 }, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
             std.debug.print("F32 changed: {d}\n", .{f32_value});
         }
 
-        if (try textInput.inputF64(&gui, .{ .x = 600, .y = 270, .w = 200, .h = 40 }, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+        if (try textInput.inputNumber(&gui, .{ .x = 600, .y = 270, .w = 200, .h = 40 }, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
             std.debug.print("F64 changed: {d}\n", .{f64_value});
         }
 
-        if (try textInput.inputI32(&gui, .{ .x = 810, .y = 220, .w = 150, .h = 40 }, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+        if (try textInput.inputNumber(&gui, .{ .x = 810, .y = 220, .w = 150, .h = 40 }, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
             std.debug.print("I32 changed: {d}\n", .{i32_value});
         }
 
-        if (try textInput.inputI64(&gui, .{ .x = 810, .y = 270, .w = 150, .h = 40 }, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
+        if (try textInput.inputNumber(&gui, .{ .x = 810, .y = 270, .w = 150, .h = 40 }, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF })) {
             std.debug.print("I64 changed: {d}\n", .{i64_value});
         }
 

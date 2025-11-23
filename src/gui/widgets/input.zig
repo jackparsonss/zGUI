@@ -77,7 +77,42 @@ pub fn inputText(ctx: *GuiContext, rect: shapes.Rect, buffer: []u8, buffer_len: 
     return inputInternal(ctx, rect, id, buffer, buffer_len, opts, null);
 }
 
-// Internal shared function for input rendering and interaction
+pub fn moveMousePosition(ctx: *GuiContext, state: *ActiveInputState, buffer: []u8, buffer_len: usize, rect: shapes.Rect, opts: InputOptions) !void {
+    if (buffer_len == 0) {
+        return;
+    }
+
+    const padding = 8.0;
+    const text_x = rect.x + padding;
+    const mouse_x: f32 = @floatCast(ctx.input.cursor_x);
+    const relative_x = mouse_x - text_x + state.scroll_offset;
+
+    // Find the character position closest to the mouse
+    var closest_pos: usize = 0;
+    var closest_dist: f32 = std.math.floatMax(f32);
+
+    // Check position before first character
+    if (relative_x < 0) {
+        state.cursor_pos = 0;
+        return;
+    }
+
+    // Check each character position
+    for (0..buffer_len + 1) |i| {
+        const text_slice = buffer[0..i];
+        const metrics = try ctx.measureText(text_slice, opts.font_size);
+        const dist = @abs(metrics.width - relative_x);
+
+        if (dist < closest_dist) {
+            closest_dist = dist;
+            closest_pos = i;
+        }
+    }
+
+    state.cursor_pos = closest_pos;
+    state.cursor_blink_time = glfw.glfwGetTime();
+}
+
 fn inputInternal(
     ctx: *GuiContext,
     rect: shapes.Rect,
@@ -92,6 +127,13 @@ fn inputInternal(
 
     const is_active = if (ctx.active_input_id) |active_id| active_id == id else false;
 
+    // click away(becomes inactive)
+    if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
+        ctx.active_input_id = null;
+        ctx.active_input_state = null;
+        return false;
+    }
+
     var state = if (is_active and ctx.active_input_state != null)
         ctx.active_input_state.?
     else
@@ -99,85 +141,14 @@ fn inputInternal(
 
     if (is_clicked) {
         ctx.active_input_id = id;
-        state.cursor_blink_time = glfw.glfwGetTime();
+        try moveMousePosition(ctx, &state, buffer, buffer_len.*, rect, opts);
 
-        // Position cursor based on click position
-        if (buffer_len.* > 0) {
-            const padding = 8.0;
-            const text_x = rect.x + padding;
-            const click_x: f32 = @floatCast(ctx.input.cursor_x);
-            const relative_x = click_x - text_x + state.scroll_offset;
-
-            // Find the character position closest to the click
-            var closest_pos: usize = 0;
-            var closest_dist: f32 = std.math.floatMax(f32);
-
-            // Check position before first character
-            if (relative_x < 0) {
-                state.cursor_pos = 0;
-            } else {
-                // Check each character position
-                for (0..buffer_len.* + 1) |i| {
-                    const text_slice = buffer[0..i];
-                    const metrics = try ctx.measureText(text_slice, opts.font_size);
-                    const dist = @abs(metrics.width - relative_x);
-
-                    if (dist < closest_dist) {
-                        closest_dist = dist;
-                        closest_pos = i;
-                    }
-                }
-
-                state.cursor_pos = closest_pos;
-            }
-        } else {
-            state.cursor_pos = 0;
-        }
-
-        // Start selection at click position
         state.selection_start = state.cursor_pos;
     }
 
-    // Handle mouse drag selection
+    // handle mouse drag selection
     if (is_active and is_hovered and ctx.input.mouse_left_pressed and !is_clicked) {
-        if (buffer_len.* > 0) {
-            const padding = 8.0;
-            const text_x = rect.x + padding;
-            const mouse_x: f32 = @floatCast(ctx.input.cursor_x);
-            const relative_x = mouse_x - text_x + state.scroll_offset;
-
-            // Find the character position closest to the mouse
-            var closest_pos: usize = 0;
-            var closest_dist: f32 = std.math.floatMax(f32);
-
-            // Check position before first character
-            if (relative_x < 0) {
-                state.cursor_pos = 0;
-            } else {
-                // Check each character position
-                for (0..buffer_len.* + 1) |i| {
-                    const text_slice = buffer[0..i];
-                    const metrics = try ctx.measureText(text_slice, opts.font_size);
-                    const dist = @abs(metrics.width - relative_x);
-
-                    if (dist < closest_dist) {
-                        closest_dist = dist;
-                        closest_pos = i;
-                    }
-                }
-
-                state.cursor_pos = closest_pos;
-            }
-
-            state.cursor_blink_time = glfw.glfwGetTime();
-        }
-    }
-
-    if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
-        // Clear active state
-        ctx.active_input_id = null;
-        ctx.active_input_state = null;
-        return false;
+        try moveMousePosition(ctx, &state, buffer, buffer_len.*, rect, opts);
     }
 
     var box_color = opts.color;
@@ -555,20 +526,17 @@ fn isValidFloatChar(char: u8, buffer: []const u8, buffer_len: usize, cursor_pos:
     }
 
     if (char == '-') {
-        return cursor_pos == 0 and buffer_len == 0;
+        return cursor_pos == 0 and (buffer_len == 0 or buffer[0] != '-');
     }
 
     return false;
 }
 
 fn isValidIntChar(char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool {
-    _ = buffer;
-    _ = buffer_len;
-
     if (char >= '0' and char <= '9') return true;
 
     if (char == '-') {
-        return cursor_pos == 0;
+        return cursor_pos == 0 and (buffer_len == 0 or buffer[0] != '-');
     }
 
     return false;
@@ -629,18 +597,19 @@ fn inputNumberGeneric(
     return changed;
 }
 
-pub fn inputF32(ctx: *GuiContext, rect: shapes.Rect, value: *f32, opts: InputOptions) !bool {
-    return inputNumberGeneric(ctx, rect, value, f32, opts, isValidFloatChar);
-}
+pub fn inputNumber(ctx: *GuiContext, rect: shapes.Rect, value: anytype, opts: InputOptions) !bool {
+    const T = @TypeOf(value);
+    const type_info = @typeInfo(T);
 
-pub fn inputF64(ctx: *GuiContext, rect: shapes.Rect, value: *f64, opts: InputOptions) !bool {
-    return inputNumberGeneric(ctx, rect, value, f64, opts, isValidFloatChar);
-}
+    if (type_info != .pointer) {
+        @compileError("value must be a pointer to a number type");
+    }
 
-pub fn inputI32(ctx: *GuiContext, rect: shapes.Rect, value: *i32, opts: InputOptions) !bool {
-    return inputNumberGeneric(ctx, rect, value, i32, opts, isValidIntChar);
-}
+    const ChildType = type_info.pointer.child;
 
-pub fn inputI64(ctx: *GuiContext, rect: shapes.Rect, value: *i64, opts: InputOptions) !bool {
-    return inputNumberGeneric(ctx, rect, value, i64, opts, isValidIntChar);
+    switch (@typeInfo(ChildType)) {
+        .float => return inputNumberGeneric(ctx, rect, value, ChildType, opts, isValidFloatChar),
+        .int => return inputNumberGeneric(ctx, rect, value, ChildType, opts, isValidIntChar),
+        else => @compileError("value must be a pointer to a number type (int or float)"),
+    }
 }
