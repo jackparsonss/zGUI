@@ -147,8 +147,8 @@ pub fn main() !void {
 
         if (build_options.debug) {
             const fps_text = try std.fmt.bufPrint(&fps_buffer, "{d:.0} FPS", .{fps});
-            const fps_metrics = try gui.measureText(fps_text, 20);
-            const fps_x = @as(f32, @floatFromInt(fb_width)) - fps_metrics.width - 60;
+            const fps_metrics = try gui.measureText(fps_text, 36);
+            const fps_x = @as(f32, @floatFromInt(fb_width)) - fps_metrics.width - 10;
             const fps_y = 10;
             try gui.addText(fps_x, fps_y, fps_text, 36, 0xFFFFFFFF);
         }
