@@ -18,6 +18,7 @@ jobs:
       uses: mlugg/setup-zig@v1
       with:
         version: 0.15.2
+        mirror: 'https://pkg.machengine.org/zig'
 
     - name: Install dependencies
       run: |
