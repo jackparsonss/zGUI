@@ -25,9 +25,19 @@ pub const Options = struct {
     border_radius: f32 = 8.0,
     variant: Variant = .FILLED,
     border_thickness: f32 = 2.0,
+    padding: f32 = 16.0,
 };
 
-pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: Options) !bool {
+pub fn button(ctx: *GuiContext, x: f32, y: f32, label: []const u8, opts: Options) !bool {
+    const metrics = try ctx.measureText(label, opts.font_size);
+
+    const rect = shapes.Rect{
+        .x = x,
+        .y = y,
+        .w = metrics.width + opts.padding * 2,
+        .h = metrics.height + opts.padding * 2,
+    };
+
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
 
@@ -42,8 +52,6 @@ pub fn button(ctx: *GuiContext, rect: shapes.Rect, label: []const u8, opts: Opti
         .FILLED => try ctx.draw_list.addRoundedRect(rect, opts.border_radius, button_color),
         .OUTLINED => try ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, button_color),
     }
-
-    const metrics = try ctx.measureText(label, opts.font_size);
 
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
     const ty = rect.y + (rect.h - metrics.height) * 0.5;

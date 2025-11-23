@@ -120,30 +120,14 @@ pub fn main() !void {
             std.debug.print("I64 changed: {d}\n", .{i64_value});
         }
 
-        if (try btn.button(&gui, .{ .x = 0, .y = 0, .w = 200, .h = 50 }, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
+        if (try btn.button(&gui, 0, 0, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (box and try btn.button(&gui, .{ .x = 250, .y = 30, .w = 250, .h = 70 }, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
+        if (box and try btn.button(&gui, 250, 30, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
-        if (try btn.button(&gui, .{ .x = 30, .y = 120, .w = 150, .h = 30 }, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
+        if (try btn.button(&gui, 30, 120, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
-        }
-
-        const right_btn_rect = shapes.Rect{ .x = 30, .y = 250, .w = 200, .h = 50 };
-        const right_is_hovered = gui.input.isMouseInRect(right_btn_rect);
-        const right_color: u32 = if (right_is_hovered) 0xFF6464FF else 0xC86464FF;
-        if (try btn.button(&gui, right_btn_rect, "Right Click Me", .{ .font_size = 20, .color = right_color, .border_radius = 10.0 })) {} // left click does nothing
-        if (right_is_hovered and gui.input.mouse_right_clicked) {
-            std.debug.print("Right mouse button clicked!\n", .{});
-        }
-
-        const middle_btn_rect = shapes.Rect{ .x = 250, .y = 250, .w = 200, .h = 50 };
-        const middle_is_hovered = gui.input.isMouseInRect(middle_btn_rect);
-        const middle_color: u32 = if (middle_is_hovered) 0x64FF64FF else 0x64C864FF;
-        if (try btn.button(&gui, middle_btn_rect, "Middle Click Me", .{ .font_size = 20, .color = middle_color, .border_radius = 10.0 })) {} // left click does nothing
-        if (middle_is_hovered and gui.input.mouse_middle_clicked) {
-            std.debug.print("Middle mouse button clicked!\n", .{});
         }
 
         if (gui.input.scroll_y != 0) {
