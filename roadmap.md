@@ -52,15 +52,11 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
   - [x] Copy/Paste (Ctrl/Cmd + C/V)
   - [x] Horizontal scrolling for long text
   - [x] Backspace/Delete
-- [ ] Image widget (texture display)
-- [ ] Radio button
-- [ ] Slider (horizontal and vertical)
+- [x] Image widget (texture display)
 
 ### Testing & Examples
 
-- [ ] Interactive demo application
-- [ ] Example: Simple form with various widgets
-- [ ] Input handling test suite
+- [x] Interactive demo application
 
 ---
 
@@ -157,13 +153,13 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 - [ ] Multi-line text editor
 - [ ] Progress bar
 - [ ] Spinner/loading indicator
+- [ ] Radio button
+- [ ] Slider (horizontal and vertical)
 
 ### Visualization Widgets
 
 - [ ] Graph/chart widgets (line, bar, pie)
 - [ ] Color picker
-- [ ] Canvas widget (custom drawing)
-- [ ] Minimap/overview widget
 
 ---
 
