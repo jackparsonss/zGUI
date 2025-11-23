@@ -52,9 +52,9 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
   - [x] Copy/Paste (Ctrl/Cmd + C/V)
   - [x] Horizontal scrolling for long text
   - [x] Backspace/Delete
+- [ ] Image widget (texture display)
 - [ ] Radio button
 - [ ] Slider (horizontal and vertical)
-- [ ] Image widget (texture display)
 
 ### Testing & Examples
 

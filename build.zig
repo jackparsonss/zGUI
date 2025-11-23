@@ -39,6 +39,12 @@ pub fn build(b: *std.Build) void {
         .flags = &[_][]const u8{"-O3"},
     });
 
+    exe.root_module.addIncludePath(.{ .cwd_relative = "external/image" });
+    exe.root_module.addCSourceFile(.{
+        .file = b.path("external/image/stb_image.c"),
+        .flags = &[_][]const u8{"-O3"},
+    });
+
     b.installArtifact(exe);
 
     const run_step = b.step("run", "Run the app");

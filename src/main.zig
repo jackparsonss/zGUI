@@ -4,6 +4,7 @@ const build_options = @import("build_options");
 const btn = @import("gui/widgets/button.zig");
 const checkbox = @import("gui/widgets/checkbox.zig").checkbox;
 const textInput = @import("gui/widgets/input.zig");
+const imageWidget = @import("gui/widgets/image.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
 const shapes = @import("gui/shapes.zig");
@@ -47,6 +48,10 @@ pub fn main() !void {
 
     var gui = try GuiContext.init(allocator, window);
     defer gui.deinit();
+
+    // Load test image
+    var checkmark_img = try imageWidget.Image.load(allocator, "assets/checkmark.png");
+    defer checkmark_img.deinit();
 
     glfw.glfwSetWindowUserPointer(window, &gui);
     _ = glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
@@ -95,6 +100,8 @@ pub fn main() !void {
         }
 
         gui.updateInput(window);
+
+        try imageWidget.image(&gui, 50, 300, &checkmark_img, .{});
 
         if (try checkbox(&gui, 200, 200, &box, .{})) {
             std.debug.print("Toggled Checkbox to: {}\n", .{box});

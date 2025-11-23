@@ -145,8 +145,16 @@ fn createShader() u32 {
         \\        // Solid color rendering (for rectangles, shapes, etc.)
         \\        out_color = vColor;
         \\    } else {
-        \\        // Textured rendering (for text)
-        \\        out_color = vec4(vColor.rgb, vColor.a * texture(uTexture, vUV.st).r);
+        \\        vec4 texColor = texture(uTexture, vUV.st);
+        \\        // If vertex color is white (all channels == 1.0), it's a full-color image
+        \\        // Otherwise, it's text (single channel) or tinted image
+        \\        if (vColor.r >= 0.99 && vColor.g >= 0.99 && vColor.b >= 0.99) {
+        \\            // Full-color image rendering (use RGBA from texture)
+        \\            out_color = texColor * vColor;
+        \\        } else {
+        \\            // Text rendering (use only red channel for alpha)
+        \\            out_color = vec4(vColor.rgb, vColor.a * texColor.r);
+        \\        }
         \\    }
         \\}
     ;

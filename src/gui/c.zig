@@ -10,4 +10,8 @@ pub const trueType = @cImport({
     @cInclude("stb_truetype.h");
 });
 
+pub const image = @cImport({
+    @cInclude("stb_image.h");
+});
+
 pub const Window = ?*glfw.GLFWwindow;
