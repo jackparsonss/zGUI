@@ -15,7 +15,7 @@ pub fn checkbox(ctx: *GuiContext, checked: *bool, opts: CheckboxOptions) !bool {
         @panic("checkbox widget must be used inside a layout");
     };
 
-    const rect = layout.allocateSpace(opts.size, opts.size);
+    const rect = layout.allocateSpace(ctx, opts.size, opts.size);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;

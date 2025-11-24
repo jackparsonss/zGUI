@@ -80,7 +80,7 @@ pub fn inputText(ctx: *GuiContext, buffer: []u8, buffer_len: *usize, opts: Input
         @panic("inputText widget must be used inside a layout");
     };
 
-    const rect = layout.allocateSpace(opts.width, opts.height);
+    const rect = layout.allocateSpace(ctx, opts.width, opts.height);
     const id = @intFromPtr(buffer.ptr);
     return inputInternal(ctx, rect, id, buffer, buffer_len, opts, null);
 }
@@ -611,7 +611,7 @@ pub fn inputNumber(ctx: *GuiContext, value: anytype, opts: InputOptions) !bool {
         @panic("inputNumber widget must be used inside a layout");
     };
 
-    const rect = layout.allocateSpace(opts.width, opts.height);
+    const rect = layout.allocateSpace(ctx, opts.width, opts.height);
     const T = @TypeOf(value);
     const type_info = @typeInfo(T);
 

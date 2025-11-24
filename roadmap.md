@@ -66,8 +66,8 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ### Layout System
 
-- [ ] Automatic layout engine (horizontal/vertical stacking)
-- [ ] Padding and margin support
+- [x] Automatic layout engine (horizontal/vertical stacking)
+- [x] Padding and margin support
 - [ ] Alignment options (left, center, right, top, bottom)
 - [ ] Flexible sizing (fixed, fill, fit-content)
 - [ ] Grid layout

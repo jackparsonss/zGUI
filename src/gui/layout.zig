@@ -7,11 +7,21 @@ pub const Direction = enum {
     VERTICAL,
 };
 
+pub const Alignment = enum {
+    LEFT,
+    CENTER,
+    RIGHT,
+    TOP,
+    BOTTOM,
+};
+
 pub const LayoutOptions = struct {
     margin: f32 = 0.0,
     padding: f32 = 0.0,
     width: ?f32 = null, // Fixed width (null = auto)
     height: ?f32 = null, // Fixed height (null = auto)
+    align_horizontal: ?Alignment = null, // Horizontal alignment (LEFT, CENTER, RIGHT)
+    align_vertical: ?Alignment = null, // Vertical alignment (TOP, CENTER, BOTTOM)
 };
 
 pub const Layout = struct {
@@ -26,6 +36,8 @@ pub const Layout = struct {
     is_first_widget: bool, // Track if this is the first widget to avoid margin
     width: ?f32, // Fixed width (null = auto)
     height: ?f32, // Fixed height (null = auto)
+    align_horizontal: ?Alignment, // Horizontal alignment
+    align_vertical: ?Alignment, // Vertical alignment
 
     pub fn init(direction: Direction, x: f32, y: f32, opts: LayoutOptions) Layout {
         return Layout{
@@ -40,10 +52,12 @@ pub const Layout = struct {
             .is_first_widget = true,
             .width = opts.width,
             .height = opts.height,
+            .align_horizontal = opts.align_horizontal,
+            .align_vertical = opts.align_vertical,
         };
     }
 
-    pub fn allocateSpace(self: *Layout, width: f32, height: f32) shapes.Rect {
+    pub fn allocateSpace(self: *Layout, ctx: *const GuiContext, width: f32, height: f32) shapes.Rect {
         if (!self.is_first_widget) {
             switch (self.direction) {
                 .HORIZONTAL => self.current_x += self.margin,
@@ -52,9 +66,32 @@ pub const Layout = struct {
         }
         self.is_first_widget = false;
 
+        var x = self.current_x;
+        var y = self.current_y;
+
+        if (self.align_vertical) |v_align| {
+            const available_height = (self.height orelse ctx.window_height) - (self.padding * 2);
+            switch (v_align) {
+                .TOP => {}, // Default, no adjustment
+                .CENTER => y += (available_height - height) * 0.5,
+                .BOTTOM => y += available_height - height,
+                else => {}, // LEFT/RIGHT not applicable for vertical alignment
+            }
+        }
+
+        if (self.align_horizontal) |h_align| {
+            const available_width = (self.width orelse ctx.window_height) - (self.padding * 2);
+            switch (h_align) {
+                .LEFT => {}, // Default, no adjustment
+                .CENTER => x += (available_width - width) * 0.5,
+                .RIGHT => x += available_width - width,
+                else => {}, // TOP/BOTTOM not applicable for horizontal alignment
+            }
+        }
+
         const rect = shapes.Rect{
-            .x = self.current_x,
-            .y = self.current_y,
+            .x = x,
+            .y = y,
             .w = width,
             .h = height,
         };
@@ -117,10 +154,10 @@ fn layoutHelper(ctx: *GuiContext, direction: Direction, opts: LayoutOptions) Lay
     var y: f32 = 0;
 
     if (ctx.getCurrentLayout()) |parent| {
-        const width: f32 = opts.width orelse 100; // default for auto-sizing
-        const height: f32 = opts.height orelse 100;
+        const width: f32 = opts.width orelse ctx.window_width;
+        const height: f32 = opts.height orelse ctx.window_height;
 
-        const rect = parent.allocateSpace(width, height);
+        const rect = parent.allocateSpace(ctx, width, height);
         x = rect.x;
         y = rect.y;
     } else {

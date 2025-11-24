@@ -106,8 +106,8 @@ pub fn main() !void {
 
         try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0 }));
 
-        // Left sidebar - vertical layout with buttons and checkbox
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250 }));
+        // Left sidebar - vertical layout with buttons and checkbox (left aligned)
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250, .align_horizontal = .LEFT }));
         if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
@@ -122,14 +122,14 @@ pub fn main() !void {
         }
         layout.endLayout(&gui);
 
-        // Main content
+        // Main content (center aligned)
         const center_width = @as(f32, @floatFromInt(fb_width)) - 250 - 350;
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .padding = 50, .width = center_width }));
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .padding = 50, .width = center_width, .align_horizontal = .CENTER, .align_vertical = .CENTER }));
         try imageWidget.image(&gui, &checkmark_img, .{});
         layout.endLayout(&gui);
 
-        // Right sidebar - vertical layout with input fields
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350 }));
+        // Right sidebar - vertical layout with input fields (bottom aligned)
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350, .align_vertical = .BOTTOM }));
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }

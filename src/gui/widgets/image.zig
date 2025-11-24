@@ -82,7 +82,7 @@ pub fn image(ctx: *GuiContext, img: *const Image, opts: Options) !void {
         @panic("image widget must be used inside a layout");
     };
 
-    const rect = layout.allocateSpace(width, height);
+    const rect = layout.allocateSpace(ctx, width, height);
 
     try ctx.draw_list.setTexture(img.texture);
     try ctx.draw_list.addRectUV(

@@ -38,7 +38,7 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
 
     const width = metrics.width + opts.padding * 2;
     const height = metrics.height + opts.padding * 2;
-    const rect = layout.allocateSpace(width, height);
+    const rect = layout.allocateSpace(ctx, width, height);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
