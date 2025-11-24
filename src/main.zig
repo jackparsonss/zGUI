@@ -10,6 +10,7 @@ const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
 const shapes = @import("gui/shapes.zig");
 const input = @import("gui/input.zig");
+const DebugStats = @import("gui/debug_stats.zig").DebugStats;
 const c = @import("gui/c.zig");
 const glfw = c.glfw;
 const gl = c.glad;
@@ -65,14 +66,13 @@ pub fn main() !void {
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
     gl.glClearColor(0.55, 0.55, 0.55, 1.0);
 
-    // FPS tracking (only if debug is enabled)
-    var last_time: f64 = undefined;
-    var fps: f64 = undefined;
-    var fps_buffer: [32]u8 = undefined;
-    if (build_options.debug) {
-        last_time = glfw.glfwGetTime();
-        fps = 0.0;
+    var debug_stats = if (comptime build_options.debug) DebugStats.init() else {};
+    defer {
+        if (comptime build_options.debug) {
+            debug_stats.deinit();
+        }
     }
+    var stats_buffer: [128]u8 = undefined;
 
     var box = false;
 
@@ -90,17 +90,13 @@ pub fn main() !void {
     gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
 
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        if (comptime build_options.debug) {
+            debug_stats.beginFrame(glfw.glfwGetTime());
+        }
+
         gui.newFrame();
 
         glfw.glfwPollEvents();
-
-        // calculate FPS
-        if (build_options.debug) {
-            const current_time = glfw.glfwGetTime();
-            const delta_time = current_time - last_time;
-            last_time = current_time;
-            fps = 1.0 / delta_time;
-        }
 
         gui.updateInput(window);
         if (gui.is_resizing) {
@@ -152,16 +148,20 @@ pub fn main() !void {
 
         layout.endLayout(&gui);
 
-        if (build_options.debug) {
-            const fps_text = try std.fmt.bufPrint(&fps_buffer, "{d:.0} FPS", .{fps});
-            const fps_metrics = try gui.measureText(fps_text, 36);
-            const fps_x = gui.window_width - fps_metrics.width - 10;
-            const fps_y = 10;
-            try gui.addText(fps_x, fps_y, fps_text, 36, 0xFFFFFFFF);
+        if (comptime build_options.debug) {
+            const stats_text = try debug_stats.format(&stats_buffer);
+            const stats_metrics = try gui.measureText(stats_text, 20);
+            const stats_x = gui.window_width - stats_metrics.width - 10;
+            const stats_y = 10;
+            try gui.addText(stats_x, stats_y, stats_text, 20, 0xFFFFFFFF);
         }
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, @intFromFloat(gui.window_width), @intFromFloat(gui.window_height));
+
+        if (comptime build_options.debug) {
+            debug_stats.endFrame();
+        }
 
         glfw.glfwSwapBuffers(window);
     }
