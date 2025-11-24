@@ -59,6 +59,7 @@ pub fn main() !void {
     _ = glfw.glfwSetCharCallback(window, input.charCallback);
     _ = glfw.glfwSetKeyCallback(window, input.keyCallback);
     _ = glfw.glfwSetScrollCallback(window, input.scrollCallback);
+    _ = glfw.glfwSetFramebufferSizeCallback(window, input.framebufferSizeCallback);
 
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
@@ -83,16 +84,15 @@ pub fn main() !void {
     var i32_value: i32 = -123;
     var i64_value: i64 = 9876543210;
 
+    var fb_width: i32 = 0;
+    var fb_height: i32 = 0;
+    glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
+    gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
+
     while (glfw.glfwWindowShouldClose(window) == 0) {
         gui.newFrame();
 
         glfw.glfwPollEvents();
-
-        var fb_width: i32 = 0;
-        var fb_height: i32 = 0;
-        glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
-
-        gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
 
         // calculate FPS
         if (build_options.debug) {
@@ -103,11 +103,14 @@ pub fn main() !void {
         }
 
         gui.updateInput(window);
+        if (gui.is_resizing) {
+            continue;
+        }
 
         try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0 }));
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250, .align_horizontal = .LEFT }));
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250 }));
         if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
@@ -123,13 +126,13 @@ pub fn main() !void {
         layout.endLayout(&gui);
 
         // Main content (center aligned)
-        const center_width = @as(f32, @floatFromInt(fb_width)) - 250 - 350;
+        const center_width = gui.window_width - 250 - 350;
         try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .padding = 50, .width = center_width, .align_horizontal = .CENTER, .align_vertical = .CENTER }));
         try imageWidget.image(&gui, &checkmark_img, .{});
         layout.endLayout(&gui);
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350, .align_vertical = .BOTTOM }));
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350 }));
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }
@@ -152,13 +155,13 @@ pub fn main() !void {
         if (build_options.debug) {
             const fps_text = try std.fmt.bufPrint(&fps_buffer, "{d:.0} FPS", .{fps});
             const fps_metrics = try gui.measureText(fps_text, 36);
-            const fps_x = @as(f32, @floatFromInt(fb_width)) - fps_metrics.width - 10;
+            const fps_x = gui.window_width - fps_metrics.width - 10;
             const fps_y = 10;
             try gui.addText(fps_x, fps_y, fps_text, 36, 0xFFFFFFFF);
         }
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
-        gui.render(&renderer, fb_width, fb_height);
+        gui.render(&renderer, @intFromFloat(gui.window_width), @intFromFloat(gui.window_height));
 
         glfw.glfwSwapBuffers(window);
     }

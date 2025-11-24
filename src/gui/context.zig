@@ -57,6 +57,10 @@ pub const GuiContext = struct {
     window_width: f32, // Current window width
     window_height: f32, // Current window height
 
+    // Track if we're currently resizing to skip expensive UI rebuilding
+    is_resizing: bool,
+    last_resize_time: f64,
+
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
 
@@ -76,6 +80,8 @@ pub const GuiContext = struct {
             .layout_row_max_height = 0.0,
             .window_width = 0.0,
             .window_height = 0.0,
+            .is_resizing = false,
+            .last_resize_time = 0.0,
         };
         return ctx;
     }
@@ -89,6 +95,12 @@ pub const GuiContext = struct {
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
         self.layout_row_max_height = 0.0;
+
+        // Check if resize has finished (no resize for 50ms = resize complete)
+        const current_time = c.glfw.glfwGetTime();
+        if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
+            self.is_resizing = false;
+        }
     }
 
     pub fn updateInput(self: *GuiContext, window: Window) void {
@@ -170,6 +182,9 @@ pub const GuiContext = struct {
     pub fn setWindowSize(self: *GuiContext, width: f32, height: f32) void {
         self.window_width = width;
         self.window_height = height;
+        // Mark that we're resizing and record the time
+        self.is_resizing = true;
+        self.last_resize_time = c.glfw.glfwGetTime();
     }
 
     pub fn updateLayoutPos(self: *GuiContext, bounds: shapes.Rect) void {

@@ -41,6 +41,14 @@ pub fn scrollCallback(window: c.Window, xoffset: f64, yoffset: f64) callconv(.c)
     }
 }
 
+pub fn framebufferSizeCallback(window: c.Window, width: c_int, height: c_int) callconv(.c) void {
+    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    if (gui_ptr != null) {
+        const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
+        gui.setWindowSize(@floatFromInt(width), @floatFromInt(height));
+    }
+}
+
 pub const Input = struct {
     cursor_x: f64,
     cursor_y: f64,
