@@ -8,7 +8,10 @@ pub const Direction = enum {
 };
 
 pub const LayoutOptions = struct {
-    spacing: f32 = 0.0,
+    margin: f32 = 0.0,
+    padding: f32 = 0.0,
+    width: ?f32 = null, // Fixed width (null = auto)
+    height: ?f32 = null, // Fixed height (null = auto)
 };
 
 pub const Layout = struct {
@@ -17,22 +20,38 @@ pub const Layout = struct {
     y: f32,
     current_x: f32,
     current_y: f32,
-    spacing: f32,
+    margin: f32,
+    padding: f32,
     max_cross_size: f32, // max height for horizontal, max width for vertical
+    is_first_widget: bool, // Track if this is the first widget to avoid margin
+    width: ?f32, // Fixed width (null = auto)
+    height: ?f32, // Fixed height (null = auto)
 
     pub fn init(direction: Direction, x: f32, y: f32, opts: LayoutOptions) Layout {
         return Layout{
             .direction = direction,
             .x = x,
             .y = y,
-            .current_x = x,
-            .current_y = y,
-            .spacing = opts.spacing,
+            .current_x = x + opts.padding,
+            .current_y = y + opts.padding,
+            .margin = opts.margin,
+            .padding = opts.padding,
             .max_cross_size = 0.0,
+            .is_first_widget = true,
+            .width = opts.width,
+            .height = opts.height,
         };
     }
 
     pub fn allocateSpace(self: *Layout, width: f32, height: f32) shapes.Rect {
+        if (!self.is_first_widget) {
+            switch (self.direction) {
+                .HORIZONTAL => self.current_x += self.margin,
+                .VERTICAL => self.current_y += self.margin,
+            }
+        }
+        self.is_first_widget = false;
+
         const rect = shapes.Rect{
             .x = self.current_x,
             .y = self.current_y,
@@ -42,11 +61,11 @@ pub const Layout = struct {
 
         switch (self.direction) {
             .HORIZONTAL => {
-                self.current_x += width + self.spacing;
+                self.current_x += width;
                 self.max_cross_size = @max(self.max_cross_size, height);
             },
             .VERTICAL => {
-                self.current_y += height + self.spacing;
+                self.current_y += height;
                 self.max_cross_size = @max(self.max_cross_size, width);
             },
         }
@@ -66,21 +85,69 @@ pub const Layout = struct {
     }
 };
 
-// Convenience functions for creating layouts
-pub fn hLayout(x: f32, y: f32, opts: LayoutOptions) Layout {
-    return Layout.init(.HORIZONTAL, x, y, opts);
+pub fn getBounds(layout: *const Layout) shapes.Rect {
+    const auto_width = switch (layout.direction) {
+        .HORIZONTAL => layout.current_x - layout.x + layout.padding,
+        .VERTICAL => layout.max_cross_size + layout.padding * 2,
+    };
+    const auto_height = switch (layout.direction) {
+        .HORIZONTAL => layout.max_cross_size + layout.padding * 2,
+        .VERTICAL => layout.current_y - layout.y + layout.padding,
+    };
+
+    return shapes.Rect{
+        .x = layout.x,
+        .y = layout.y,
+        .w = layout.width orelse auto_width,
+        .h = layout.height orelse auto_height,
+    };
 }
 
-pub fn vLayout(x: f32, y: f32, opts: LayoutOptions) Layout {
-    return Layout.init(.VERTICAL, x, y, opts);
+pub fn hLayout(ctx: *GuiContext, opts: LayoutOptions) Layout {
+    return layoutHelper(ctx, .HORIZONTAL, opts);
 }
 
-// Helper to push a layout onto the context's layout stack
+pub fn vLayout(ctx: *GuiContext, opts: LayoutOptions) Layout {
+    return layoutHelper(ctx, .VERTICAL, opts);
+}
+
+fn layoutHelper(ctx: *GuiContext, direction: Direction, opts: LayoutOptions) Layout {
+    var layout_opts = opts;
+    var x: f32 = 0;
+    var y: f32 = 0;
+
+    if (ctx.getCurrentLayout()) |parent| {
+        const width: f32 = opts.width orelse 100; // default for auto-sizing
+        const height: f32 = opts.height orelse 100;
+
+        const rect = parent.allocateSpace(width, height);
+        x = rect.x;
+        y = rect.y;
+    } else {
+        const pos = ctx.getNextLayoutPos();
+        x = pos.x;
+        y = pos.y;
+        if (layout_opts.width == null) {
+            layout_opts.width = ctx.window_width;
+        }
+        if (layout_opts.height == null) {
+            layout_opts.height = ctx.window_height;
+        }
+    }
+
+    return Layout.init(direction, x, y, layout_opts);
+}
+
 pub fn beginLayout(ctx: *GuiContext, layout: Layout) !void {
     try ctx.layout_stack.append(ctx.allocator, layout);
 }
 
-// Helper to pop a layout from the context's layout stack
 pub fn endLayout(ctx: *GuiContext) void {
-    _ = ctx.layout_stack.pop();
+    if (ctx.layout_stack.items.len == 0) return;
+
+    const finished_layout_opt = ctx.layout_stack.pop();
+    const finished_layout = finished_layout_opt orelse return;
+
+    const bounds = getBounds(&finished_layout);
+    ctx.updateLayoutPos(bounds);
 }

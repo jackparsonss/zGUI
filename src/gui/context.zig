@@ -50,10 +50,17 @@ pub const GuiContext = struct {
     layout_stack: std.ArrayList(Layout),
     allocator: std.mem.Allocator,
 
+    // Global layout position tracking for automatic positioning
+    next_layout_x: f32,
+    next_layout_y: f32,
+    layout_row_max_height: f32, // Track max height in current row for wrapping
+    window_width: f32, // Current window width
+    window_height: f32, // Current window height
+
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
 
-        var ctx = GuiContext{
+        const ctx = GuiContext{
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
@@ -62,10 +69,14 @@ pub const GuiContext = struct {
             .checkmark_image = checkmark_image,
             .active_input_id = null,
             .active_input_state = null,
-            .layout_stack = undefined,
+            .layout_stack = .empty,
             .allocator = allocator,
+            .next_layout_x = 0.0,
+            .next_layout_y = 0.0,
+            .layout_row_max_height = 0.0,
+            .window_width = 0.0,
+            .window_height = 0.0,
         };
-        ctx.layout_stack = std.ArrayList(Layout).initCapacity(allocator, 0) catch .empty;
         return ctx;
     }
 
@@ -74,6 +85,10 @@ pub const GuiContext = struct {
         self.draw_list.clear();
         // Clear layout stack at the start of each frame
         self.layout_stack.clearRetainingCapacity();
+        // Reset layout position tracking
+        self.next_layout_x = 0.0;
+        self.next_layout_y = 0.0;
+        self.layout_row_max_height = 0.0;
     }
 
     pub fn updateInput(self: *GuiContext, window: Window) void {
@@ -143,9 +158,23 @@ pub const GuiContext = struct {
         self.layout_stack.deinit(self.allocator);
     }
 
-    // Get the current active layout (if any)
     pub fn getCurrentLayout(self: *GuiContext) ?*Layout {
         if (self.layout_stack.items.len == 0) return null;
         return &self.layout_stack.items[self.layout_stack.items.len - 1];
+    }
+
+    pub fn getNextLayoutPos(self: *GuiContext) struct { x: f32, y: f32 } {
+        return .{ .x = self.next_layout_x, .y = self.next_layout_y };
+    }
+
+    pub fn setWindowSize(self: *GuiContext, width: f32, height: f32) void {
+        self.window_width = width;
+        self.window_height = height;
+    }
+
+    pub fn updateLayoutPos(self: *GuiContext, bounds: shapes.Rect) void {
+        self.next_layout_x = 0.0;
+        self.next_layout_y = bounds.y + bounds.h;
+        self.layout_row_max_height = 0.0;
     }
 };

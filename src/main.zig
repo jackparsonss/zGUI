@@ -92,6 +92,8 @@ pub fn main() !void {
         var fb_height: i32 = 0;
         glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
 
+        gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
+
         // calculate FPS
         if (build_options.debug) {
             const current_time = glfw.glfwGetTime();
@@ -102,50 +104,50 @@ pub fn main() !void {
 
         gui.updateInput(window);
 
-        try layout.beginLayout(&gui, layout.hLayout(30, 30, .{ .spacing = 10 }));
+        try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0 }));
+
+        // Left sidebar - vertical layout with buttons and checkbox
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250 }));
         if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
         if (try btn.button(&gui, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
+        if (box and try btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
+            std.debug.print("Button 'Large Text' was clicked!\n", .{});
+        }
         if (try checkbox(&gui, &box, .{})) {
             std.debug.print("Toggled Checkbox to: {}\n", .{box});
         }
         layout.endLayout(&gui);
 
-        try layout.beginLayout(&gui, layout.vLayout(30, 100, .{ .spacing = 10 }));
+        // Main content
+        const center_width = @as(f32, @floatFromInt(fb_width)) - 250 - 350;
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .padding = 50, .width = center_width }));
+        try imageWidget.image(&gui, &checkmark_img, .{});
+        layout.endLayout(&gui);
+
+        // Right sidebar - vertical layout with input fields
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350 }));
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }
-        if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 200, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("F32 changed: {d}\n", .{f32_value});
         }
-        if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 200, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("F64 changed: {d}\n", .{f64_value});
         }
-        layout.endLayout(&gui);
-
-        try layout.beginLayout(&gui, layout.hLayout(350, 100, .{ .spacing = 10 }));
-        if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 150, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("I32 changed: {d}\n", .{i32_value});
         }
-        if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 150, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
             std.debug.print("I64 changed: {d}\n", .{i64_value});
         }
         layout.endLayout(&gui);
 
-        try layout.beginLayout(&gui, layout.hLayout(50, 300, .{}));
-        try imageWidget.image(&gui, &checkmark_img, .{});
         layout.endLayout(&gui);
-
-        if (box) {
-            try layout.beginLayout(&gui, layout.hLayout(30, 400, .{}));
-            if (try btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
-                std.debug.print("Button 'Large Text' was clicked!\n", .{});
-            }
-            layout.endLayout(&gui);
-        }
 
         if (build_options.debug) {
             const fps_text = try std.fmt.bufPrint(&fps_buffer, "{d:.0} FPS", .{fps});
