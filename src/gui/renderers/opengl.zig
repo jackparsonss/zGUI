@@ -3,6 +3,7 @@ const gl = @import("../c.zig").glad;
 const GuiContext = @import("../context.zig").GuiContext;
 const Vertex = @import("../shapes.zig").Vertex;
 const DrawList = @import("../draw_list.zig").DrawList;
+const build_options = @import("build_options");
 
 pub const GLRenderer = struct {
     shader: u32,
@@ -222,6 +223,10 @@ fn createShader() u32 {
 }
 
 pub fn checkGlError(location: []const u8) void {
+    if (comptime build_options.debug) {
+        return;
+    }
+
     var e = gl.glGetError();
     while (e != gl.GL_NO_ERROR) {
         const error_str = switch (e) {
