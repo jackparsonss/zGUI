@@ -68,10 +68,7 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 - [x] Automatic layout engine (horizontal/vertical stacking)
 - [x] Padding and margin support
-- [ ] Alignment options (left, center, right, top, bottom)
-- [ ] Flexible sizing (fixed, fill, fit-content)
-- [ ] Grid layout
-- [ ] Nested layouts
+- [x] Alignment options (left, center, right, top, bottom)
 
 ### Container Widgets
 
@@ -112,7 +109,7 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ### Visual Features
 
-- [ ] Rounded corners for rectangles
+- [x] Rounded corners for rectangles
 - [ ] Gradients (linear, radial)
 - [ ] Shadows and blur effects
 - [ ] Border styling (width, color, style)
@@ -160,6 +157,11 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 - [ ] Graph/chart widgets (line, bar, pie)
 - [ ] Color picker
+
+### Complex Layouts
+
+- [ ] Grid layout
+- [ ] Nested layouts
 
 ---
 
