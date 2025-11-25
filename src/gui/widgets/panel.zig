@@ -55,22 +55,31 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
 
         var hover_border: ?ResizeBorder = null;
 
-        if (mouse_x >= rect.x + rect.w - border_width and
+        // VLayout can only resize horizontally (left/right borders)
+        // HLayout can only resize vertically (top/bottom borders)
+        const allow_horizontal = current_layout.direction == .VERTICAL;
+        const allow_vertical = current_layout.direction == .HORIZONTAL;
+
+        if (allow_horizontal and
+            mouse_x >= rect.x + rect.w - border_width and
             mouse_x <= rect.x + rect.w and
             mouse_y >= rect.y and mouse_y <= rect.y + rect.h)
         {
             hover_border = .right;
-        } else if (mouse_x >= rect.x and
+        } else if (allow_horizontal and
+            mouse_x >= rect.x and
             mouse_x <= rect.x + border_width and
             mouse_y >= rect.y and mouse_y <= rect.y + rect.h)
         {
             hover_border = .left;
-        } else if (mouse_y >= rect.y + rect.h - border_width and
+        } else if (allow_vertical and
+            mouse_y >= rect.y + rect.h - border_width and
             mouse_y <= rect.y + rect.h and
             mouse_x >= rect.x and mouse_x <= rect.x + rect.w)
         {
             hover_border = .bottom;
-        } else if (mouse_y >= rect.y and
+        } else if (allow_vertical and
+            mouse_y >= rect.y and
             mouse_y <= rect.y + border_width and
             mouse_x >= rect.x and mouse_x <= rect.x + rect.w)
         {

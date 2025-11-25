@@ -11,7 +11,7 @@ const imageWidget = @import("widgets/image.zig");
 const Layout = @import("layout.zig").Layout;
 const c = @import("c.zig");
 const Window = c.Window;
-const glfw = glfw;
+const glfw = c.glfw;
 
 pub const ActiveInputState = struct {
     cursor_pos: usize,
