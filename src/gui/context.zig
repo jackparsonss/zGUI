@@ -32,6 +32,36 @@ pub const ActiveInputState = struct {
     }
 };
 
+pub const ResizeBorder = enum {
+    left,
+    right,
+    top,
+    bottom,
+};
+
+pub const ResizeState = struct {
+    dragging: bool,
+    panel_id: u64,
+    border: ResizeBorder,
+    initial_mouse_pos: f32,
+    panel_rect: shapes.Rect,
+
+    pub fn init() ResizeState {
+        return .{
+            .dragging = false,
+            .panel_id = 0,
+            .border = .right,
+            .initial_mouse_pos = 0.0,
+            .panel_rect = .{ .x = 0, .y = 0, .w = 0, .h = 0 },
+        };
+    }
+};
+
+pub const PanelSize = struct {
+    width: ?f32,
+    height: ?f32,
+};
+
 pub const GuiContext = struct {
     draw_list: DrawList,
     input: Input,
@@ -43,6 +73,10 @@ pub const GuiContext = struct {
     // Active input widget state (only exists when an input is focused)
     active_input_id: ?u64,
     active_input_state: ?ActiveInputState,
+
+    // Panel resize state
+    resize_state: ResizeState,
+    panel_sizes: std.AutoHashMap(u64, PanelSize),
 
     // Layout stack for managing nested layouts
     layout_stack: std.ArrayList(Layout),
@@ -71,6 +105,8 @@ pub const GuiContext = struct {
             .checkmark_image = checkmark_image,
             .active_input_id = null,
             .active_input_state = null,
+            .resize_state = ResizeState.init(),
+            .panel_sizes = std.AutoHashMap(u64, PanelSize).init(allocator),
             .layout_stack = .empty,
             .allocator = allocator,
             .next_layout_x = 0.0,
@@ -163,6 +199,7 @@ pub const GuiContext = struct {
         self.font_cache.deinit();
         self.checkmark_image.deinit();
         self.layout_stack.deinit(self.allocator);
+        self.panel_sizes.deinit();
     }
 
     pub fn getCurrentLayout(self: *GuiContext) ?*Layout {
