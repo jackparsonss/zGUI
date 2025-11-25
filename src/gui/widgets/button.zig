@@ -22,6 +22,7 @@ pub const Variant = enum {
 pub const Options = struct {
     font_size: f32 = 24,
     color: shapes.Color = 0x000000FF,
+    font_color: shapes.Color = 0x000000FF,
     border_radius: f32 = 8.0,
     variant: Variant = .FILLED,
     border_thickness: f32 = 2.0,
@@ -31,11 +32,7 @@ pub const Options = struct {
 pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
     const metrics = try ctx.measureText(label, opts.font_size);
 
-    // Widget must be inside a layout
-    const layout = ctx.getCurrentLayout() orelse {
-        @panic("button widget must be used inside a layout");
-    };
-
+    const layout = ctx.assertCurrentLayout();
     const width = metrics.width + opts.padding * 2;
     const height = metrics.height + opts.padding * 2;
     const rect = layout.allocateSpace(ctx, width, height);
@@ -58,7 +55,7 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
     const ty = rect.y + (rect.h - metrics.height) * 0.5;
 
-    try ctx.addText(tx, ty, label, opts.font_size, 0x000000FF);
+    try ctx.addText(tx, ty, label, opts.font_size, opts.font_color);
 
     return is_clicked;
 }

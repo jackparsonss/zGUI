@@ -164,12 +164,8 @@ fn layoutHelper(ctx: *GuiContext, direction: Direction, opts: LayoutOptions) Lay
         const pos = ctx.getNextLayoutPos();
         x = pos.x;
         y = pos.y;
-        if (layout_opts.width == null) {
-            layout_opts.width = ctx.window_width;
-        }
-        if (layout_opts.height == null) {
-            layout_opts.height = ctx.window_height;
-        }
+        layout_opts.width = opts.width orelse ctx.window_width;
+        layout_opts.height = opts.height orelse ctx.window_height;
     }
 
     return Layout.init(direction, x, y, layout_opts);

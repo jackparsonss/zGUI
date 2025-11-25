@@ -77,11 +77,7 @@ pub fn image(ctx: *GuiContext, img: *const Image, opts: Options) !void {
     const width = opts.width orelse @as(f32, @floatFromInt(img.width));
     const height = opts.height orelse @as(f32, @floatFromInt(img.height));
 
-    // Widget must be inside a layout
-    const layout = ctx.getCurrentLayout() orelse {
-        @panic("image widget must be used inside a layout");
-    };
-
+    const layout = ctx.assertCurrentLayout();
     const rect = layout.allocateSpace(ctx, width, height);
 
     try ctx.draw_list.setTexture(img.texture);

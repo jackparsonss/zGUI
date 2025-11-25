@@ -72,7 +72,7 @@ A lightweight, immediate-mode GUI library for Zig that enables developers to bui
 
 ### Container Widgets
 
-- [ ] Panel (basic container with background)
+- [x] Panel (basic container with background)
 - [ ] Scrollable container
 - [ ] Collapsible section
 - [ ] Tab container

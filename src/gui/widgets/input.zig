@@ -606,11 +606,7 @@ fn inputNumberGeneric(
 }
 
 pub fn inputNumber(ctx: *GuiContext, value: anytype, opts: InputOptions) !bool {
-    // Widget must be inside a layout
-    const layout = ctx.getCurrentLayout() orelse {
-        @panic("inputNumber widget must be used inside a layout");
-    };
-
+    const layout = ctx.assertCurrentLayout();
     const rect = layout.allocateSpace(ctx, opts.width, opts.height);
     const T = @TypeOf(value);
     const type_info = @typeInfo(T);

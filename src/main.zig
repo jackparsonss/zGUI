@@ -5,6 +5,7 @@ const btn = @import("gui/widgets/button.zig");
 const checkbox = @import("gui/widgets/checkbox.zig").checkbox;
 const textInput = @import("gui/widgets/input.zig");
 const imageWidget = @import("gui/widgets/image.zig");
+const panelWidget = @import("gui/widgets/panel.zig");
 const layout = @import("gui/layout.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
@@ -107,10 +108,11 @@ pub fn main() !void {
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
         try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250 }));
+        try panelWidget.panel(&gui, .{});
         if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (try btn.button(&gui, "small text", .{ .font_size = 16, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
+        if (try btn.button(&gui, "small text", .{ .font_size = 16, .font_color = 0xFFFFFFFF, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
         if (box and try btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
@@ -129,19 +131,20 @@ pub fn main() !void {
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
         try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350 }));
-        if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
+        try panelWidget.panel(&gui, .{});
+        if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }
-        if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("F32 changed: {d}\n", .{f32_value});
         }
-        if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("F64 changed: {d}\n", .{f64_value});
         }
-        if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("I32 changed: {d}\n", .{i32_value});
         }
-        if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0x000000FF, .width = 300, .height = 40 })) {
+        if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("I64 changed: {d}\n", .{i64_value});
         }
         layout.endLayout(&gui);

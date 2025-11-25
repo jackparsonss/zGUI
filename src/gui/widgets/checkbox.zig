@@ -10,11 +10,7 @@ pub const CheckboxOptions = struct {
 };
 
 pub fn checkbox(ctx: *GuiContext, checked: *bool, opts: CheckboxOptions) !bool {
-    // Widget must be inside a layout
-    const layout = ctx.getCurrentLayout() orelse {
-        @panic("checkbox widget must be used inside a layout");
-    };
-
+    const layout = ctx.assertCurrentLayout();
     const rect = layout.allocateSpace(ctx, opts.size, opts.size);
 
     const is_hovered = ctx.input.isMouseInRect(rect);

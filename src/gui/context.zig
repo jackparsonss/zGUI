@@ -12,13 +12,11 @@ const Layout = @import("layout.zig").Layout;
 const c = @import("c.zig");
 const Window = c.Window;
 
-// Internal state for the active text input widget
 pub const ActiveInputState = struct {
     cursor_pos: usize,
     scroll_offset: f32,
     selection_start: ?usize,
     cursor_blink_time: f64,
-    // For inputNumber: preserve the text buffer while editing
     number_buffer: ?[32]u8,
     number_buffer_len: usize,
 
@@ -89,14 +87,11 @@ pub const GuiContext = struct {
     pub fn newFrame(self: *GuiContext) void {
         self.input.beginFrame();
         self.draw_list.clear();
-        // Clear layout stack at the start of each frame
         self.layout_stack.clearRetainingCapacity();
-        // Reset layout position tracking
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
         self.layout_row_max_height = 0.0;
 
-        // Check if resize has finished (no resize for 50ms = resize complete)
         const current_time = c.glfw.glfwGetTime();
         if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
             self.is_resizing = false;
@@ -175,6 +170,13 @@ pub const GuiContext = struct {
         return &self.layout_stack.items[self.layout_stack.items.len - 1];
     }
 
+    pub fn assertCurrentLayout(self: *GuiContext) *Layout {
+        if (self.layout_stack.items.len == 0) {
+            @panic("image widget must be used inside a layout");
+        }
+        return &self.layout_stack.items[self.layout_stack.items.len - 1];
+    }
+
     pub fn getNextLayoutPos(self: *GuiContext) struct { x: f32, y: f32 } {
         return .{ .x = self.next_layout_x, .y = self.next_layout_y };
     }
@@ -182,7 +184,6 @@ pub const GuiContext = struct {
     pub fn setWindowSize(self: *GuiContext, width: f32, height: f32) void {
         self.window_width = width;
         self.window_height = height;
-        // Mark that we're resizing and record the time
         self.is_resizing = true;
         self.last_resize_time = c.glfw.glfwGetTime();
     }
