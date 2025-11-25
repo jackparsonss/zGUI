@@ -182,5 +182,30 @@ pub fn endLayout(ctx: *GuiContext) void {
     const finished_layout = finished_layout_opt orelse return;
 
     const bounds = getBounds(&finished_layout);
+
+    if (ctx.current_panel_id) |panel_id| {
+        const content_width = switch (finished_layout.direction) {
+            .HORIZONTAL => finished_layout.current_x - finished_layout.x + finished_layout.padding,
+            .VERTICAL => finished_layout.max_cross_size + finished_layout.padding * 2,
+        };
+        const content_height = switch (finished_layout.direction) {
+            .HORIZONTAL => finished_layout.max_cross_size + finished_layout.padding * 2,
+            .VERTICAL => finished_layout.current_y - finished_layout.y + finished_layout.padding,
+        };
+
+        if (ctx.panel_sizes.getPtr(panel_id)) |panel_size| {
+            panel_size.min_width = content_width;
+            panel_size.min_height = content_height;
+        } else {
+            ctx.panel_sizes.put(panel_id, .{
+                .width = null,
+                .height = null,
+                .min_width = content_width,
+                .min_height = content_height,
+            }) catch {};
+        }
+        ctx.current_panel_id = null;
+    }
+
     ctx.updateLayoutPos(bounds);
 }

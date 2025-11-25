@@ -24,6 +24,11 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
 
     const panel_id = @as(u64, @intFromFloat(current_layout.x * 10000 + current_layout.y + @as(f32, @floatFromInt(ctx.layout_stack.items.len))));
 
+    // Track this panel if it's resizable
+    if (opts.resizable) {
+        ctx.current_panel_id = panel_id;
+    }
+
     if (ctx.panel_sizes.get(panel_id)) |stored_size| {
         if (stored_size.width) |w| {
             current_layout.width = w;
@@ -107,33 +112,56 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
                 };
                 const delta = current_pos - ctx.resize_state.initial_mouse_pos;
 
+                // Get minimum sizes from stored panel data, or use default
+                const stored_size = ctx.panel_sizes.get(panel_id) orelse PanelSize{ .width = null, .height = null, .min_width = 100.0, .min_height = 100.0 };
+
                 switch (ctx.resize_state.border) {
                     .right => {
                         const new_width = ctx.resize_state.panel_rect.w + delta;
-                        if (new_width > 100.0) {
+                        if (new_width >= stored_size.min_width) {
                             current_layout.width = new_width;
-                            try ctx.panel_sizes.put(panel_id, .{ .width = new_width, .height = current_layout.height });
+                            try ctx.panel_sizes.put(panel_id, .{
+                                .width = new_width,
+                                .height = current_layout.height,
+                                .min_width = stored_size.min_width,
+                                .min_height = stored_size.min_height,
+                            });
                         }
                     },
                     .left => {
                         const new_width = ctx.resize_state.panel_rect.w - delta;
-                        if (new_width > 100.0) {
+                        if (new_width >= stored_size.min_width) {
                             current_layout.width = new_width;
-                            try ctx.panel_sizes.put(panel_id, .{ .width = new_width, .height = current_layout.height });
+                            try ctx.panel_sizes.put(panel_id, .{
+                                .width = new_width,
+                                .height = current_layout.height,
+                                .min_width = stored_size.min_width,
+                                .min_height = stored_size.min_height,
+                            });
                         }
                     },
                     .bottom => {
                         const new_height = ctx.resize_state.panel_rect.h + delta;
-                        if (new_height > 100.0) {
+                        if (new_height >= stored_size.min_height) {
                             current_layout.height = new_height;
-                            try ctx.panel_sizes.put(panel_id, .{ .width = current_layout.width, .height = new_height });
+                            try ctx.panel_sizes.put(panel_id, .{
+                                .width = current_layout.width,
+                                .height = new_height,
+                                .min_width = stored_size.min_width,
+                                .min_height = stored_size.min_height,
+                            });
                         }
                     },
                     .top => {
                         const new_height = ctx.resize_state.panel_rect.h - delta;
-                        if (new_height > 100.0) {
+                        if (new_height >= stored_size.min_height) {
                             current_layout.height = new_height;
-                            try ctx.panel_sizes.put(panel_id, .{ .width = current_layout.width, .height = new_height });
+                            try ctx.panel_sizes.put(panel_id, .{
+                                .width = current_layout.width,
+                                .height = new_height,
+                                .min_width = stored_size.min_width,
+                                .min_height = stored_size.min_height,
+                            });
                         }
                     },
                 }

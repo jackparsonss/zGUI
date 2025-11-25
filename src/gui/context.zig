@@ -61,6 +61,8 @@ pub const ResizeState = struct {
 pub const PanelSize = struct {
     width: ?f32,
     height: ?f32,
+    min_width: f32 = 0.0,
+    min_height: f32 = 0.0,
 };
 
 pub const GuiContext = struct {
@@ -78,6 +80,7 @@ pub const GuiContext = struct {
     // Panel resize state
     resize_state: ResizeState,
     panel_sizes: std.AutoHashMap(u64, PanelSize),
+    current_panel_id: ?u64, // Track which panel the current layout belongs to
 
     // Layout stack for managing nested layouts
     layout_stack: std.ArrayList(Layout),
@@ -120,6 +123,7 @@ pub const GuiContext = struct {
             .active_input_state = null,
             .resize_state = ResizeState.init(),
             .panel_sizes = std.AutoHashMap(u64, PanelSize).init(allocator),
+            .current_panel_id = null,
             .layout_stack = .empty,
             .allocator = allocator,
             .next_layout_x = 0.0,
@@ -142,6 +146,7 @@ pub const GuiContext = struct {
         self.input.beginFrame();
         self.draw_list.clear();
         self.layout_stack.clearRetainingCapacity();
+        self.current_panel_id = null;
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
         self.layout_row_max_height = 0.0;
