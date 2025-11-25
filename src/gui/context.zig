@@ -11,6 +11,7 @@ const imageWidget = @import("widgets/image.zig");
 const Layout = @import("layout.zig").Layout;
 const c = @import("c.zig");
 const Window = c.Window;
+const glfw = glfw;
 
 pub const ActiveInputState = struct {
     cursor_pos: usize,
@@ -93,8 +94,20 @@ pub const GuiContext = struct {
     is_resizing: bool,
     last_resize_time: f64,
 
+    // Cursor management
+    arrow_cursor: ?*glfw.GLFWcursor,
+    hresize_cursor: ?*glfw.GLFWcursor,
+    vresize_cursor: ?*glfw.GLFWcursor,
+    ibeam_cursor: ?*glfw.GLFWcursor,
+    current_cursor: ?*glfw.GLFWcursor,
+
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
+
+        const arrow_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_ARROW_CURSOR);
+        const hresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HRESIZE_CURSOR);
+        const vresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_VRESIZE_CURSOR);
+        const ibeam_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_IBEAM_CURSOR);
 
         const ctx = GuiContext{
             .draw_list = DrawList.init(allocator),
@@ -116,6 +129,11 @@ pub const GuiContext = struct {
             .window_height = 0.0,
             .is_resizing = false,
             .last_resize_time = 0.0,
+            .arrow_cursor = arrow_cursor,
+            .hresize_cursor = hresize_cursor,
+            .vresize_cursor = vresize_cursor,
+            .ibeam_cursor = ibeam_cursor,
+            .current_cursor = arrow_cursor,
         };
         return ctx;
     }
@@ -128,10 +146,12 @@ pub const GuiContext = struct {
         self.next_layout_y = 0.0;
         self.layout_row_max_height = 0.0;
 
-        const current_time = c.glfw.glfwGetTime();
+        const current_time = glfw.glfwGetTime();
         if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
             self.is_resizing = false;
         }
+
+        self.setCursor(self.arrow_cursor);
     }
 
     pub fn updateInput(self: *GuiContext, window: Window) void {
@@ -139,16 +159,16 @@ pub const GuiContext = struct {
     }
 
     pub fn handleMouseButton(self: *GuiContext, button: c_int, action: c_int) void {
-        const glfw = c.glfw;
+        if (action != glfw.GLFW_PRESS) {
+            return;
+        }
 
-        if (action == glfw.GLFW_PRESS) {
-            if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) {
-                self.input.registerMouseClick();
-            } else if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) {
-                self.input.registerRightClick();
-            } else if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) {
-                self.input.registerMiddleClick();
-            }
+        if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) {
+            self.input.registerMouseClick();
+        } else if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) {
+            self.input.registerRightClick();
+        } else if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) {
+            self.input.registerMiddleClick();
         }
     }
 
@@ -161,7 +181,6 @@ pub const GuiContext = struct {
     }
 
     pub fn handleModifiers(self: *GuiContext, mods: c_int) void {
-        const glfw = c.glfw;
         self.input.ctrl_pressed = (mods & glfw.GLFW_MOD_CONTROL) != 0;
         self.input.alt_pressed = (mods & glfw.GLFW_MOD_ALT) != 0;
         self.input.super_pressed = (mods & glfw.GLFW_MOD_SUPER) != 0;
@@ -200,6 +219,11 @@ pub const GuiContext = struct {
         self.checkmark_image.deinit();
         self.layout_stack.deinit(self.allocator);
         self.panel_sizes.deinit();
+
+        if (self.arrow_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
+        if (self.hresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
+        if (self.vresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
+        if (self.ibeam_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
     }
 
     pub fn getCurrentLayout(self: *GuiContext) ?*Layout {
@@ -222,12 +246,19 @@ pub const GuiContext = struct {
         self.window_width = width;
         self.window_height = height;
         self.is_resizing = true;
-        self.last_resize_time = c.glfw.glfwGetTime();
+        self.last_resize_time = glfw.glfwGetTime();
     }
 
     pub fn updateLayoutPos(self: *GuiContext, bounds: shapes.Rect) void {
         self.next_layout_x = 0.0;
         self.next_layout_y = bounds.y + bounds.h;
         self.layout_row_max_height = 0.0;
+    }
+
+    pub fn setCursor(self: *GuiContext, cursor: ?*glfw.GLFWcursor) void {
+        if (self.current_cursor != cursor) {
+            glfw.glfwSetCursor(self.window, cursor);
+            self.current_cursor = cursor;
+        }
     }
 };

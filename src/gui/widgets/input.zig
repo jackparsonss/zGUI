@@ -132,6 +132,9 @@ fn inputInternal(
 ) !bool {
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+    if (is_hovered) {
+        ctx.setCursor(ctx.ibeam_cursor);
+    }
 
     const is_active = if (ctx.active_input_id) |active_id| active_id == id else false;
 
