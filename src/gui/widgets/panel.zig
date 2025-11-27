@@ -1,5 +1,5 @@
-const GuiContext = @import("../context.zig").GuiContext;
 const ResizeBorder = @import("../context.zig").ResizeBorder;
+const GuiContext = @import("../context.zig").GuiContext;
 const PanelSize = @import("../context.zig").PanelSize;
 const shapes = @import("../shapes.zig");
 const layout = @import("../layout.zig");
@@ -21,10 +21,9 @@ pub const PanelResult = struct {
 
 pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
     const current_layout = ctx.assertCurrentLayout();
+    const panel_id = ctx.id_counter;
+    ctx.id_counter += 1;
 
-    const panel_id = @as(u64, @intFromFloat(current_layout.x * 10000 + current_layout.y + @as(f32, @floatFromInt(ctx.layout_stack.items.len))));
-
-    // Track this panel if it's resizable
     if (opts.resizable) {
         ctx.current_panel_id = panel_id;
     }
@@ -36,6 +35,11 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
         if (stored_size.height) |h| {
             current_layout.height = h;
         }
+        // Apply position offsets
+        current_layout.x += stored_size.x_offset;
+        current_layout.y += stored_size.y_offset;
+        current_layout.current_x = current_layout.x + current_layout.padding;
+        current_layout.current_y = current_layout.y + current_layout.padding;
     }
 
     const full_height = current_layout.height orelse ctx.window_height;
@@ -60,8 +64,6 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
 
         var hover_border: ?ResizeBorder = null;
 
-        // VLayout can only resize horizontally (left/right borders)
-        // HLayout can only resize vertically (top/bottom borders)
         const allow_horizontal = current_layout.direction == .VERTICAL;
         const allow_vertical = current_layout.direction == .HORIZONTAL;
 
@@ -92,6 +94,15 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
         }
 
         if (hover_border != null and ctx.input.mouse_left_clicked) {
+            const current_offsets = ctx.panel_sizes.get(panel_id) orelse PanelSize{
+                .width = null,
+                .height = null,
+                .min_width = 100.0,
+                .min_height = 100.0,
+                .x_offset = 0.0,
+                .y_offset = 0.0,
+            };
+
             ctx.resize_state.dragging = true;
             ctx.resize_state.panel_id = panel_id;
             ctx.resize_state.border = hover_border.?;
@@ -100,6 +111,8 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
                 .top, .bottom => mouse_y,
             };
             ctx.resize_state.panel_rect = rect;
+            ctx.resize_state.initial_x_offset = current_offsets.x_offset;
+            ctx.resize_state.initial_y_offset = current_offsets.y_offset;
         }
 
         if (ctx.resize_state.dragging and ctx.resize_state.panel_id == panel_id) {
@@ -112,9 +125,14 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
                 };
                 const delta = current_pos - ctx.resize_state.initial_mouse_pos;
 
-                // Get minimum sizes from stored panel data, or use default
-                const stored_size = ctx.panel_sizes.get(panel_id) orelse PanelSize{ .width = null, .height = null, .min_width = 100.0, .min_height = 100.0 };
-
+                const stored_size = ctx.panel_sizes.get(panel_id) orelse PanelSize{
+                    .width = null,
+                    .height = null,
+                    .min_width = 100.0,
+                    .min_height = 100.0,
+                    .x_offset = 0.0,
+                    .y_offset = 0.0,
+                };
                 switch (ctx.resize_state.border) {
                     .right => {
                         const new_width = ctx.resize_state.panel_rect.w + delta;
@@ -125,18 +143,23 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
                                 .height = current_layout.height,
                                 .min_width = stored_size.min_width,
                                 .min_height = stored_size.min_height,
+                                .x_offset = stored_size.x_offset,
+                                .y_offset = stored_size.y_offset,
                             });
                         }
                     },
                     .left => {
                         const new_width = ctx.resize_state.panel_rect.w - delta;
                         if (new_width >= stored_size.min_width) {
+                            const new_offset = ctx.resize_state.initial_x_offset + delta;
                             current_layout.width = new_width;
                             try ctx.panel_sizes.put(panel_id, .{
                                 .width = new_width,
                                 .height = current_layout.height,
                                 .min_width = stored_size.min_width,
                                 .min_height = stored_size.min_height,
+                                .x_offset = new_offset,
+                                .y_offset = stored_size.y_offset,
                             });
                         }
                     },
@@ -149,18 +172,23 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
                                 .height = new_height,
                                 .min_width = stored_size.min_width,
                                 .min_height = stored_size.min_height,
+                                .x_offset = stored_size.x_offset,
+                                .y_offset = stored_size.y_offset,
                             });
                         }
                     },
                     .top => {
                         const new_height = ctx.resize_state.panel_rect.h - delta;
                         if (new_height >= stored_size.min_height) {
+                            const new_offset = ctx.resize_state.initial_y_offset + delta;
                             current_layout.height = new_height;
                             try ctx.panel_sizes.put(panel_id, .{
                                 .width = current_layout.width,
                                 .height = new_height,
                                 .min_width = stored_size.min_width,
                                 .min_height = stored_size.min_height,
+                                .x_offset = stored_size.x_offset,
+                                .y_offset = new_offset,
                             });
                         }
                     },
@@ -175,7 +203,6 @@ pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
         if (hover_border != null and (ctx.resize_state.dragging == false or
             (ctx.resize_state.dragging and ctx.resize_state.panel_id == panel_id)))
         {
-            // Set appropriate cursor based on border
             const cursor = switch (hover_border.?) {
                 .left, .right => ctx.hresize_cursor,
                 .top, .bottom => ctx.vresize_cursor,

@@ -80,6 +80,9 @@ pub fn main() !void {
     var input_buffer: [256]u8 = undefined;
     var input_len: usize = 0;
 
+    var left_panel_width: f32 = 250;
+    var right_panel_width: f32 = 350;
+
     var f32_value: f32 = 42.5;
     var f64_value: f64 = 3.14159265359;
     var i32_value: i32 = -123;
@@ -96,19 +99,23 @@ pub fn main() !void {
         }
 
         gui.newFrame();
-
         glfw.glfwPollEvents();
-
         gui.updateInput(window);
         if (gui.is_resizing) {
             continue;
         }
 
-        try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0 }));
+        // Calculate center width at the start of the frame for consistency
+        const center_width = gui.window_width - left_panel_width - right_panel_width;
+        const bottom_panel_height: f32 = 300;
+
+        try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 250 }));
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
         const left_panel = try panelWidget.panel(&gui, .{ .resizable = true });
+        left_panel_width = left_panel.width;
+
         if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
@@ -123,15 +130,41 @@ pub fn main() !void {
         }
         layout.endLayout(&gui);
 
-        // Main content (center aligned)
-        const center_width = gui.window_width - left_panel.width - 350;
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .padding = 50, .width = center_width, .align_horizontal = .CENTER, .align_vertical = .CENTER }));
+        // Center column - new vertical layout container
+
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{
+            .padding = 0,
+            .width = center_width,
+        }));
+
+        // Image widget - centered within vertical layout (leaves room for bottom panel)
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{
+            .padding = 0,
+            .width = center_width,
+            .height = gui.window_height - bottom_panel_height,
+            .align_horizontal = .CENTER,
+            .align_vertical = .CENTER,
+        }));
         try imageWidget.image(&gui, &checkmark_img, .{});
         layout.endLayout(&gui);
 
+        // Bottom panel - sibling to image container, follows sequentially
+        try layout.beginLayout(&gui, layout.hLayout(&gui, .{
+            .margin = 0,
+            .padding = 0,
+            .height = bottom_panel_height,
+            .width = center_width,
+        }));
+        _ = try panelWidget.panel(&gui, .{ .resizable = true });
+        layout.endLayout(&gui);
+
+        layout.endLayout(&gui); // End center column vLayout
+
         // Right sidebar - vertical layout with input fields (bottom aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = 350 }));
-        _ = try panelWidget.panel(&gui, .{});
+        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
+        const right_panel = try panelWidget.panel(&gui, .{ .resizable = true });
+        right_panel_width = right_panel.width;
+
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
             std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
         }
@@ -149,7 +182,6 @@ pub fn main() !void {
         }
         layout.endLayout(&gui);
 
-        layout.endLayout(&gui);
         if (comptime build_options.debug) {
             const stats_text = try debug_stats.format(&stats_buffer);
             const stats_metrics = try gui.measureText(stats_text, 20);

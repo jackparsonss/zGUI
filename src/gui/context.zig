@@ -46,6 +46,8 @@ pub const ResizeState = struct {
     border: ResizeBorder,
     initial_mouse_pos: f32,
     panel_rect: shapes.Rect,
+    initial_x_offset: f32,
+    initial_y_offset: f32,
 
     pub fn init() ResizeState {
         return .{
@@ -54,6 +56,8 @@ pub const ResizeState = struct {
             .border = .right,
             .initial_mouse_pos = 0.0,
             .panel_rect = .{ .x = 0, .y = 0, .w = 0, .h = 0 },
+            .initial_x_offset = 0.0,
+            .initial_y_offset = 0.0,
         };
     }
 };
@@ -63,6 +67,8 @@ pub const PanelSize = struct {
     height: ?f32,
     min_width: f32 = 0.0,
     min_height: f32 = 0.0,
+    x_offset: f32 = 0.0,
+    y_offset: f32 = 0.0,
 };
 
 pub const GuiContext = struct {
@@ -92,6 +98,9 @@ pub const GuiContext = struct {
     layout_row_max_height: f32, // Track max height in current row for wrapping
     window_width: f32, // Current window width
     window_height: f32, // Current window height
+
+    // Widget ID counter (reset each frame for stable IDs)
+    id_counter: u64,
 
     // Track if we're currently resizing to skip expensive UI rebuilding
     is_resizing: bool,
@@ -131,6 +140,7 @@ pub const GuiContext = struct {
             .layout_row_max_height = 0.0,
             .window_width = 0.0,
             .window_height = 0.0,
+            .id_counter = 0,
             .is_resizing = false,
             .last_resize_time = 0.0,
             .arrow_cursor = arrow_cursor,
@@ -150,6 +160,7 @@ pub const GuiContext = struct {
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
         self.layout_row_max_height = 0.0;
+        self.id_counter = 0;
 
         const current_time = glfw.glfwGetTime();
         if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
