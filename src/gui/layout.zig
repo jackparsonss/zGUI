@@ -171,8 +171,8 @@ fn layoutHelper(ctx: *GuiContext, direction: Direction, opts: LayoutOptions) Lay
     return Layout.init(direction, x, y, layout_opts);
 }
 
-pub fn beginLayout(ctx: *GuiContext, layout: Layout) !void {
-    try ctx.layout_stack.append(ctx.allocator, layout);
+pub fn beginLayout(ctx: *GuiContext, layout: Layout) void {
+    ctx.layout_stack.append(ctx.allocator, layout) catch {};
 }
 
 pub fn endLayout(ctx: *GuiContext) void {

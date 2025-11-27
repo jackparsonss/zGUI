@@ -109,20 +109,20 @@ pub fn main() !void {
         const center_width = gui.window_width - left_panel_width - right_panel_width;
         const bottom_panel_height: f32 = 300;
 
-        try layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
+        layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
         const left_panel = try panelWidget.panel(&gui, .{ .resizable = true });
         left_panel_width = left_panel.width;
 
-        if (try btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
+        if (btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
             std.debug.print("Button 'hello world' was clicked!\n", .{});
         }
-        if (try btn.button(&gui, "small text", .{ .font_size = 16, .font_color = 0xFFFFFFFF, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
+        if (btn.button(&gui, "small text", .{ .font_size = 16, .font_color = 0xFFFFFFFF, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
             std.debug.print("Button 'small text' was clicked!\n", .{});
         }
-        if (box and try btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
+        if (box and btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
             std.debug.print("Button 'Large Text' was clicked!\n", .{});
         }
         if (try checkbox(&gui, &box, .{})) {
@@ -132,13 +132,13 @@ pub fn main() !void {
 
         // Center column - new vertical layout container
 
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{
             .padding = 0,
             .width = center_width,
         }));
 
         // Image widget - centered within vertical layout (leaves room for bottom panel)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{
             .padding = 0,
             .width = center_width,
             .height = gui.window_height - bottom_panel_height,
@@ -149,7 +149,7 @@ pub fn main() !void {
         layout.endLayout(&gui);
 
         // Bottom panel - sibling to image container, follows sequentially
-        try layout.beginLayout(&gui, layout.hLayout(&gui, .{
+        layout.beginLayout(&gui, layout.hLayout(&gui, .{
             .margin = 0,
             .padding = 0,
             .height = bottom_panel_height,
@@ -161,7 +161,7 @@ pub fn main() !void {
         layout.endLayout(&gui); // End center column vLayout
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
-        try layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
         const right_panel = try panelWidget.panel(&gui, .{ .resizable = true });
         right_panel_width = right_panel.width;
 

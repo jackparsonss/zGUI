@@ -29,8 +29,10 @@ pub const Options = struct {
     padding: f32 = 16.0,
 };
 
-pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
-    const metrics = try ctx.measureText(label, opts.font_size);
+pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) bool {
+    const metrics = ctx.measureText(label, opts.font_size) catch {
+        return false;
+    };
 
     const layout = ctx.assertCurrentLayout();
     const width = metrics.width + opts.padding * 2;
@@ -48,14 +50,20 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) !bool {
     }
 
     switch (opts.variant) {
-        .FILLED => try ctx.draw_list.addRoundedRect(rect, opts.border_radius, button_color),
-        .OUTLINED => try ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, button_color),
+        .FILLED => ctx.draw_list.addRoundedRect(rect, opts.border_radius, button_color) catch {
+            return false;
+        },
+        .OUTLINED => ctx.draw_list.addRoundedRectOutline(rect, opts.border_radius, opts.border_thickness, button_color) catch {
+            return false;
+        },
     }
 
     const tx = rect.x + (rect.w - metrics.width) * 0.5;
     const ty = rect.y + (rect.h - metrics.height) * 0.5;
 
-    try ctx.addText(tx, ty, label, opts.font_size, opts.font_color);
+    ctx.addText(tx, ty, label, opts.font_size, opts.font_color) catch {
+        return false;
+    };
 
     return is_clicked;
 }

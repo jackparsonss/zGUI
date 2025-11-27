@@ -1,14 +1,14 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
 const FontCache = @import("text/font_cache.zig").FontCache;
 const TextMetrics = @import("text/font.zig").TextMetrics;
 const DrawList = @import("draw_list.zig").DrawList;
-const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
-const shapes = @import("shapes.zig");
-const Input = @import("input.zig").Input;
-const imageWidget = @import("widgets/image.zig");
+const Image = @import("widgets/image.zig").Image;
 const Layout = @import("layout.zig").Layout;
+const Input = @import("input.zig").Input;
+const shapes = @import("shapes.zig");
 const c = @import("c.zig");
 const Window = c.Window;
 const glfw = c.glfw;
@@ -77,7 +77,7 @@ pub const GuiContext = struct {
     font_cache: FontCache,
     current_font_texture: u32,
     window: c.Window,
-    checkmark_image: imageWidget.Image,
+    checkmark_image: Image,
 
     // Active input widget state (only exists when an input is focused)
     active_input_id: ?u64,
@@ -114,7 +114,7 @@ pub const GuiContext = struct {
     current_cursor: ?*glfw.GLFWcursor,
 
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
-        const checkmark_image = try imageWidget.Image.load(allocator, "assets/checkmark.png");
+        const checkmark_image = try Image.load(allocator, "assets/checkmark.png");
 
         const arrow_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_ARROW_CURSOR);
         const hresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HRESIZE_CURSOR);
@@ -122,27 +122,30 @@ pub const GuiContext = struct {
         const ibeam_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_IBEAM_CURSOR);
 
         const ctx = GuiContext{
+            .allocator = allocator,
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
             .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
-            .window = window,
             .checkmark_image = checkmark_image,
+
+            .window = window,
+            .window_width = 0.0,
+            .window_height = 0.0,
             .active_input_id = null,
             .active_input_state = null,
             .resize_state = ResizeState.init(),
             .panel_sizes = std.AutoHashMap(u64, PanelSize).init(allocator),
             .current_panel_id = null,
             .layout_stack = .empty,
-            .allocator = allocator,
             .next_layout_x = 0.0,
             .next_layout_y = 0.0,
             .layout_row_max_height = 0.0,
-            .window_width = 0.0,
-            .window_height = 0.0,
             .id_counter = 0,
             .is_resizing = false,
             .last_resize_time = 0.0,
+
+            // cursors
             .arrow_cursor = arrow_cursor,
             .hresize_cursor = hresize_cursor,
             .vresize_cursor = vresize_cursor,
