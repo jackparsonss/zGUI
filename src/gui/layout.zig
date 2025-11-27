@@ -33,7 +33,6 @@ pub const Layout = struct {
     margin: f32,
     padding: f32,
     max_cross_size: f32, // max height for horizontal, max width for vertical
-    is_first_widget: bool, // Track if this is the first widget to avoid margin
     width: ?f32, // Fixed width (null = auto)
     height: ?f32, // Fixed height (null = auto)
     align_horizontal: ?Alignment, // Horizontal alignment
@@ -49,7 +48,6 @@ pub const Layout = struct {
             .margin = opts.margin,
             .padding = opts.padding,
             .max_cross_size = 0.0,
-            .is_first_widget = true,
             .width = opts.width,
             .height = opts.height,
             .align_horizontal = opts.align_horizontal,
@@ -58,13 +56,10 @@ pub const Layout = struct {
     }
 
     pub fn allocateSpace(self: *Layout, ctx: *const GuiContext, width: f32, height: f32) shapes.Rect {
-        if (!self.is_first_widget) {
-            switch (self.direction) {
-                .HORIZONTAL => self.current_x += self.margin,
-                .VERTICAL => self.current_y += self.margin,
-            }
+        switch (self.direction) {
+            .HORIZONTAL => self.current_x += self.margin,
+            .VERTICAL => self.current_y += self.margin,
         }
-        self.is_first_widget = false;
 
         var x = self.current_x;
         var y = self.current_y;
