@@ -20,7 +20,7 @@ pub const PanelResult = struct {
 };
 
 pub fn panel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const current_layout = ctx.assertCurrentLayout();
+    const current_layout = ctx.getCurrentLayout();
     const panel_id = ctx.id_counter;
     ctx.id_counter += 1;
 

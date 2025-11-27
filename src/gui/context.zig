@@ -6,9 +6,11 @@ const FontCache = @import("text/font_cache.zig").FontCache;
 const TextMetrics = @import("text/font.zig").TextMetrics;
 const DrawList = @import("draw_list.zig").DrawList;
 const Image = @import("widgets/image.zig").Image;
-const Layout = @import("layout.zig").Layout;
 const Input = @import("input.zig").Input;
+const layout = @import("layout.zig");
 const shapes = @import("shapes.zig");
+const Direction = layout.Direction;
+const Layout = layout.Layout;
 const c = @import("c.zig");
 const Window = c.Window;
 const glfw = c.glfw;
@@ -165,6 +167,12 @@ pub const GuiContext = struct {
         self.layout_row_max_height = 0.0;
         self.id_counter = 0;
 
+        // root layout
+        self.layout_stack.append(self.allocator, Layout.init(Direction.HORIZONTAL, 0, 0, .{
+            .height = self.window_height,
+            .width = self.window_width,
+        })) catch {};
+
         const current_time = glfw.glfwGetTime();
         if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
             self.is_resizing = false;
@@ -245,15 +253,7 @@ pub const GuiContext = struct {
         if (self.ibeam_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
     }
 
-    pub fn getCurrentLayout(self: *GuiContext) ?*Layout {
-        if (self.layout_stack.items.len == 0) return null;
-        return &self.layout_stack.items[self.layout_stack.items.len - 1];
-    }
-
-    pub fn assertCurrentLayout(self: *GuiContext) *Layout {
-        if (self.layout_stack.items.len == 0) {
-            @panic("image widget must be used inside a layout");
-        }
+    pub fn getCurrentLayout(self: *GuiContext) *Layout {
         return &self.layout_stack.items[self.layout_stack.items.len - 1];
     }
 

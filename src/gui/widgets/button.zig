@@ -34,7 +34,7 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) bool {
         return false;
     };
 
-    const layout = ctx.assertCurrentLayout();
+    const layout = ctx.getCurrentLayout();
     const width = metrics.width + opts.padding * 2;
     const height = metrics.height + opts.padding * 2;
     const rect = layout.allocateSpace(ctx, width, height);

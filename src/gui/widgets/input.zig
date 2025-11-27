@@ -75,10 +75,7 @@ fn getSelectionRange(state: *const ActiveInputState, cursor_pos: usize, buffer_l
 }
 
 pub fn inputText(ctx: *GuiContext, buffer: []u8, buffer_len: *usize, opts: InputOptions) !bool {
-    // Widget must be inside a layout
-    const layout = ctx.getCurrentLayout() orelse {
-        @panic("inputText widget must be used inside a layout");
-    };
+    const layout = ctx.getCurrentLayout();
 
     const rect = layout.allocateSpace(ctx, opts.width, opts.height);
     const id = @intFromPtr(buffer.ptr);
@@ -609,7 +606,7 @@ fn inputNumberGeneric(
 }
 
 pub fn inputNumber(ctx: *GuiContext, value: anytype, opts: InputOptions) !bool {
-    const layout = ctx.assertCurrentLayout();
+    const layout = ctx.getCurrentLayout();
     const rect = layout.allocateSpace(ctx, opts.width, opts.height);
     const T = @TypeOf(value);
     const type_info = @typeInfo(T);

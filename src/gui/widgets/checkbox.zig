@@ -10,7 +10,7 @@ pub const CheckboxOptions = struct {
 };
 
 pub fn checkbox(ctx: *GuiContext, checked: *bool, opts: CheckboxOptions) !bool {
-    const layout = ctx.assertCurrentLayout();
+    const layout = ctx.getCurrentLayout();
     const rect = layout.allocateSpace(ctx, opts.size, opts.size);
 
     const is_hovered = ctx.input.isMouseInRect(rect);

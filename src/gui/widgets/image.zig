@@ -77,7 +77,7 @@ pub fn image(ctx: *GuiContext, img: *const Image, opts: Options) !void {
     const width = opts.width orelse @as(f32, @floatFromInt(img.width));
     const height = opts.height orelse @as(f32, @floatFromInt(img.height));
 
-    const layout = ctx.assertCurrentLayout();
+    const layout = ctx.getCurrentLayout();
     const rect = layout.allocateSpace(ctx, width, height);
 
     try ctx.draw_list.setTexture(img.texture);

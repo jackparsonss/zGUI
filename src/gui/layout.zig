@@ -149,26 +149,11 @@ pub fn vLayout(ctx: *GuiContext, opts: LayoutOptions) Layout {
 }
 
 fn layoutHelper(ctx: *GuiContext, direction: Direction, opts: LayoutOptions) Layout {
-    var layout_opts = opts;
-    var x: f32 = 0;
-    var y: f32 = 0;
+    const width: f32 = opts.width orelse ctx.window_width;
+    const height: f32 = opts.height orelse ctx.window_height;
+    const rect = ctx.getCurrentLayout().allocateSpace(ctx, width, height);
 
-    if (ctx.getCurrentLayout()) |parent| {
-        const width: f32 = opts.width orelse ctx.window_width;
-        const height: f32 = opts.height orelse ctx.window_height;
-
-        const rect = parent.allocateSpace(ctx, width, height);
-        x = rect.x;
-        y = rect.y;
-    } else {
-        const pos = ctx.getNextLayoutPos();
-        x = pos.x;
-        y = pos.y;
-        layout_opts.width = opts.width orelse ctx.window_width;
-        layout_opts.height = opts.height orelse ctx.window_height;
-    }
-
-    return Layout.init(direction, x, y, layout_opts);
+    return Layout.init(direction, rect.x, rect.y, opts);
 }
 
 pub fn beginLayout(ctx: *GuiContext, layout: Layout) void {
@@ -176,11 +161,7 @@ pub fn beginLayout(ctx: *GuiContext, layout: Layout) void {
 }
 
 pub fn endLayout(ctx: *GuiContext) void {
-    if (ctx.layout_stack.items.len == 0) return;
-
-    const finished_layout_opt = ctx.layout_stack.pop();
-    const finished_layout = finished_layout_opt orelse return;
-
+    const finished_layout = ctx.layout_stack.pop().?;
     const bounds = getBounds(&finished_layout);
 
     if (ctx.current_panel_id) |panel_id| {
