@@ -197,7 +197,7 @@ fn renderPanel(
         const is_hovering = checkBorderHover(mouse_x, mouse_y, final_rect, border);
         const is_active = ctx.resize_state.dragging and ctx.resize_state.panel_id == panel_id;
 
-        if (is_hovering and ctx.input.mouse_left_clicked) {
+        if (is_hovering and ctx.input.mouse_left_clicked and !ctx.click_consumed) {
             try handleResize(ctx, panel_id, final_rect, border, mouse_x, mouse_y, current_layout);
         }
 

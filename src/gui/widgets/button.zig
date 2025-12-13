@@ -40,7 +40,7 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) bool {
     const rect = layout.allocateSpace(ctx, width, height);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
-    const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+    const is_clicked = is_hovered and ctx.input.mouse_left_clicked and !ctx.click_consumed;
 
     var button_color = opts.color;
     if (is_hovered and ctx.input.mouse_left_pressed) {

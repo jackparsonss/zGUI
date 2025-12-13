@@ -14,7 +14,7 @@ pub fn checkbox(ctx: *GuiContext, checked: *bool, opts: CheckboxOptions) !bool {
     const rect = layout.allocateSpace(ctx, opts.size, opts.size);
 
     const is_hovered = ctx.input.isMouseInRect(rect);
-    const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+    const is_clicked = is_hovered and ctx.input.mouse_left_clicked and !ctx.click_consumed;
     if (is_clicked) {
         checked.* = !checked.*;
     }

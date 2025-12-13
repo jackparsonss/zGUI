@@ -128,7 +128,7 @@ fn inputInternal(
     comptime charValidationFn: ?fn (char: u8, buffer: []const u8, buffer_len: usize, cursor_pos: usize) bool,
 ) !bool {
     const is_hovered = ctx.input.isMouseInRect(rect);
-    const is_clicked = is_hovered and ctx.input.mouse_left_clicked;
+    const is_clicked = is_hovered and ctx.input.mouse_left_clicked and !ctx.click_consumed;
     if (is_hovered) {
         ctx.setCursor(ctx.ibeam_cursor);
     }
@@ -136,7 +136,7 @@ fn inputInternal(
     const is_active = if (ctx.active_input_id) |active_id| active_id == id else false;
 
     // click away(becomes inactive)
-    if (ctx.input.mouse_left_clicked and !is_hovered and is_active) {
+    if (ctx.input.mouse_left_clicked and !ctx.click_consumed and !is_hovered and is_active) {
         ctx.active_input_id = null;
         ctx.active_input_state = null;
         return false;

@@ -94,6 +94,9 @@ pub const GuiContext = struct {
     dropdown_selection_id: u64,
     dropdown_selected_index: usize,
 
+    // Click consumption for layered widgets
+    click_consumed: bool,
+
     // Panel resize state
     resize_state: ResizeState,
     panel_sizes: std.AutoHashMap(u64, PanelSize),
@@ -148,6 +151,7 @@ pub const GuiContext = struct {
             .dropdown_selection_changed = false,
             .dropdown_selection_id = 0,
             .dropdown_selected_index = 0,
+            .click_consumed = false,
             .resize_state = ResizeState.init(),
             .panel_sizes = std.AutoHashMap(u64, PanelSize).init(allocator),
             .current_panel_id = null,
@@ -174,6 +178,7 @@ pub const GuiContext = struct {
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
         self.id_counter = 0;
+        self.click_consumed = false;
 
         // root layout
         self.layout_stack.append(self.allocator, Layout.init(Direction.HORIZONTAL, 0, 0, .{
@@ -191,6 +196,31 @@ pub const GuiContext = struct {
 
     pub fn updateInput(self: *GuiContext, window: Window) void {
         self.input.update(window);
+
+        // Consume clicks if they're over an active dropdown overlay
+        self.consumeOverlayClicks();
+    }
+
+    fn consumeOverlayClicks(self: *GuiContext) void {
+        if (self.active_dropdown_overlay) |overlay| {
+            const button_rect = overlay.button_rect;
+            const dropdown_width = @max(200.0, button_rect.w);
+            const dropdown_height = @as(f32, @floatFromInt(overlay.options.len)) * overlay.opts.item_height;
+
+            const dropdown_rect = shapes.Rect{
+                .x = button_rect.x,
+                .y = button_rect.y + button_rect.h + 2.0,
+                .w = dropdown_width,
+                .h = dropdown_height,
+            };
+
+            const mouse_in_button = self.input.isMouseInRect(button_rect);
+            const mouse_in_dropdown = self.input.isMouseInRect(dropdown_rect);
+
+            if ((mouse_in_button or mouse_in_dropdown) and self.input.mouse_left_clicked) {
+                self.click_consumed = true;
+            }
+        }
     }
 
     pub fn handleMouseButton(self: *GuiContext, button: c_int, action: c_int) void {
