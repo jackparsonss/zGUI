@@ -108,12 +108,29 @@ pub fn main() !void {
         // Calculate center width at the start of the frame for consistency
         const center_width = gui.window_width - left_panel_width - right_panel_width;
         const bottom_panel_height: f32 = 300;
+        const top_panel_height: f32 = 40;
 
-        layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
+        // Main vertical layout container
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
+
+        // Top panel - skinny menu bar with File and Menu buttons
+        layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 10, .padding = 12, .height = top_panel_height }));
+        _ = try panelWidget.topPanel(&gui, .{ .resizable = false });
+
+        if (btn.button(&gui, "File", .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) {
+            std.debug.print("File button clicked!\n", .{});
+        }
+        if (btn.button(&gui, "Menu", .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) {
+            std.debug.print("Menu button clicked!\n", .{});
+        }
+        layout.endLayout(&gui);
+
+        // Main content area - horizontal layout
+        layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height - top_panel_height }));
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
-        const left_panel = try panelWidget.panel(&gui, .{ .resizable = true });
+        const left_panel = try panelWidget.leftPanel(&gui, .{ .resizable = true });
         left_panel_width = left_panel.width;
 
         if (btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
@@ -155,14 +172,14 @@ pub fn main() !void {
             .height = bottom_panel_height,
             .width = center_width,
         }));
-        _ = try panelWidget.panel(&gui, .{ .resizable = true });
+        _ = try panelWidget.bottomPanel(&gui, .{ .resizable = true });
         layout.endLayout(&gui);
 
         layout.endLayout(&gui); // End center column vLayout
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
-        const right_panel = try panelWidget.panel(&gui, .{ .resizable = true });
+        const right_panel = try panelWidget.rightPanel(&gui, .{ .resizable = true });
         right_panel_width = right_panel.width;
 
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
@@ -181,6 +198,9 @@ pub fn main() !void {
             std.debug.print("I64 changed: {d}\n", .{i64_value});
         }
         layout.endLayout(&gui);
+
+        layout.endLayout(&gui); // End main content area horizontal layout
+        layout.endLayout(&gui); // End outer vertical layout
 
         if (comptime build_options.debug) {
             const stats_text = try debug_stats.format(&stats_buffer);

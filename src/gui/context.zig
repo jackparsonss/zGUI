@@ -97,7 +97,6 @@ pub const GuiContext = struct {
     // Global layout position tracking for automatic positioning
     next_layout_x: f32,
     next_layout_y: f32,
-    layout_row_max_height: f32, // Track max height in current row for wrapping
     window_width: f32, // Current window width
     window_height: f32, // Current window height
 
@@ -127,10 +126,9 @@ pub const GuiContext = struct {
             .allocator = allocator,
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
-            .font_cache = FontCache.init(allocator, "src/gui/text/RobotoMono-Regular.ttf"),
+            .font_cache = FontCache.init(allocator, "assets/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
             .checkmark_image = checkmark_image,
-
             .window = window,
             .window_width = 0.0,
             .window_height = 0.0,
@@ -142,12 +140,9 @@ pub const GuiContext = struct {
             .layout_stack = .empty,
             .next_layout_x = 0.0,
             .next_layout_y = 0.0,
-            .layout_row_max_height = 0.0,
             .id_counter = 0,
             .is_resizing = false,
             .last_resize_time = 0.0,
-
-            // cursors
             .arrow_cursor = arrow_cursor,
             .hresize_cursor = hresize_cursor,
             .vresize_cursor = vresize_cursor,
@@ -164,7 +159,6 @@ pub const GuiContext = struct {
         self.current_panel_id = null;
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
-        self.layout_row_max_height = 0.0;
         self.id_counter = 0;
 
         // root layout
@@ -271,7 +265,6 @@ pub const GuiContext = struct {
     pub fn updateLayoutPos(self: *GuiContext, bounds: shapes.Rect) void {
         self.next_layout_x = 0.0;
         self.next_layout_y = bounds.y + bounds.h;
-        self.layout_row_max_height = 0.0;
     }
 
     pub fn setCursor(self: *GuiContext, cursor: ?*glfw.GLFWcursor) void {
