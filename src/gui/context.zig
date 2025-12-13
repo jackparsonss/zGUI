@@ -11,6 +11,8 @@ const layout = @import("layout.zig");
 const shapes = @import("shapes.zig");
 const Direction = layout.Direction;
 const Layout = layout.Layout;
+const dropdown = @import("widgets/dropdown.zig");
+const DropdownOverlay = dropdown.DropdownOverlay;
 const c = @import("c.zig");
 const Window = c.Window;
 const glfw = c.glfw;
@@ -85,6 +87,13 @@ pub const GuiContext = struct {
     active_input_id: ?u64,
     active_input_state: ?ActiveInputState,
 
+    // Active dropdown widget (only one can be open at a time)
+    active_dropdown_id: ?u64,
+    active_dropdown_overlay: ?DropdownOverlay,
+    dropdown_selection_changed: bool,
+    dropdown_selection_id: u64,
+    dropdown_selected_index: usize,
+
     // Panel resize state
     resize_state: ResizeState,
     panel_sizes: std.AutoHashMap(u64, PanelSize),
@@ -134,6 +143,11 @@ pub const GuiContext = struct {
             .window_height = 0.0,
             .active_input_id = null,
             .active_input_state = null,
+            .active_dropdown_id = null,
+            .active_dropdown_overlay = null,
+            .dropdown_selection_changed = false,
+            .dropdown_selection_id = 0,
+            .dropdown_selected_index = 0,
             .resize_state = ResizeState.init(),
             .panel_sizes = std.AutoHashMap(u64, PanelSize).init(allocator),
             .current_panel_id = null,
@@ -219,6 +233,9 @@ pub const GuiContext = struct {
     }
 
     pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
+        // Render dropdown overlays on top of everything
+        dropdown.renderDropdownOverlays(self) catch {};
+
         renderer.render(self, width, height);
     }
 

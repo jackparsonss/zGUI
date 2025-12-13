@@ -6,6 +6,7 @@ const checkbox = @import("gui/widgets/checkbox.zig").checkbox;
 const textInput = @import("gui/widgets/input.zig");
 const imageWidget = @import("gui/widgets/image.zig");
 const panelWidget = @import("gui/widgets/panel.zig");
+const dropdown = @import("gui/widgets/dropdown.zig");
 const layout = @import("gui/layout.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
@@ -82,6 +83,7 @@ pub fn main() !void {
 
     var left_panel_width: f32 = 250;
     var right_panel_width: f32 = 350;
+    var bottom_panel_height: f32 = 300;
 
     var f32_value: f32 = 42.5;
     var f64_value: f64 = 3.14159265359;
@@ -92,6 +94,10 @@ pub fn main() !void {
     var fb_height: i32 = 0;
     glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
     gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
+
+    const file_options = [_][]const u8{ "New", "Open", "Save", "Save As", "Exit" };
+    const menu_options = [_][]const u8{ "Preferences", "Settings", "About" };
+    const top_panel_height: f32 = 40;
 
     while (glfw.glfwWindowShouldClose(window) == 0) {
         if (comptime build_options.debug) {
@@ -105,24 +111,21 @@ pub fn main() !void {
             continue;
         }
 
-        // Calculate center width at the start of the frame for consistency
         const center_width = gui.window_width - left_panel_width - right_panel_width;
-        const bottom_panel_height: f32 = 300;
-        const top_panel_height: f32 = 40;
 
-        // Main vertical layout container
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
 
-        // Top panel - skinny menu bar with File and Menu buttons
         layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 10, .padding = 12, .height = top_panel_height }));
         _ = try panelWidget.topPanel(&gui, .{ .resizable = false });
 
-        if (btn.button(&gui, "File", .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) {
-            std.debug.print("File button clicked!\n", .{});
+        if (try dropdown.dropdown(&gui, 1, "File", &file_options, .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) |index| {
+            std.debug.print("File option selected: {s}\n", .{file_options[index]});
         }
-        if (btn.button(&gui, "Menu", .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) {
-            std.debug.print("Menu button clicked!\n", .{});
+
+        if (try dropdown.dropdown(&gui, 2, "Menu", &menu_options, .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) |index| {
+            std.debug.print("Menu option selected: {s}\n", .{menu_options[index]});
         }
+
         layout.endLayout(&gui);
 
         // Main content area - horizontal layout
@@ -172,7 +175,8 @@ pub fn main() !void {
             .height = bottom_panel_height,
             .width = center_width,
         }));
-        _ = try panelWidget.bottomPanel(&gui, .{ .resizable = true });
+        const bottom_panel = try panelWidget.bottomPanel(&gui, .{ .resizable = true });
+        bottom_panel_height = bottom_panel.height;
         layout.endLayout(&gui);
 
         layout.endLayout(&gui); // End center column vLayout
