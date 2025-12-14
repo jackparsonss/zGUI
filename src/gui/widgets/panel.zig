@@ -1,6 +1,7 @@
 const ResizeBorder = @import("../context.zig").ResizeBorder;
 const GuiContext = @import("../context.zig").GuiContext;
 const PanelSize = @import("../context.zig").PanelSize;
+const id = @import("utils.zig").id;
 const shapes = @import("../shapes.zig");
 const c = @import("../c.zig");
 const glfw = c.glfw;
@@ -218,9 +219,8 @@ fn renderPanel(
     };
 }
 
-pub fn leftPanel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const panel_id = ctx.id_counter;
-    ctx.id_counter += 1;
+pub fn leftPanel(ctx: *GuiContext, label: []const u8, opts: Options) !PanelResult {
+    const panel_id = id(label);
 
     if (opts.resizable) {
         ctx.current_panel_id = panel_id;
@@ -229,9 +229,8 @@ pub fn leftPanel(ctx: *GuiContext, opts: Options) !PanelResult {
     return renderPanel(ctx, panel_id, opts, if (opts.resizable) .right else null);
 }
 
-pub fn rightPanel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const panel_id = ctx.id_counter;
-    ctx.id_counter += 1;
+pub fn rightPanel(ctx: *GuiContext, label: []const u8, opts: Options) !PanelResult {
+    const panel_id = id(label);
 
     if (opts.resizable) {
         ctx.current_panel_id = panel_id;
@@ -240,9 +239,8 @@ pub fn rightPanel(ctx: *GuiContext, opts: Options) !PanelResult {
     return renderPanel(ctx, panel_id, opts, if (opts.resizable) .left else null);
 }
 
-pub fn topPanel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const panel_id = ctx.id_counter;
-    ctx.id_counter += 1;
+pub fn topPanel(ctx: *GuiContext, label: []const u8, opts: Options) !PanelResult {
+    const panel_id = id(label);
 
     if (opts.resizable) {
         ctx.current_panel_id = panel_id;
@@ -251,9 +249,8 @@ pub fn topPanel(ctx: *GuiContext, opts: Options) !PanelResult {
     return renderPanel(ctx, panel_id, opts, if (opts.resizable) .bottom else null);
 }
 
-pub fn bottomPanel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const panel_id = ctx.id_counter;
-    ctx.id_counter += 1;
+pub fn bottomPanel(ctx: *GuiContext, label: []const u8, opts: Options) !PanelResult {
+    const panel_id = id(label);
 
     if (opts.resizable) {
         ctx.current_panel_id = panel_id;
@@ -262,9 +259,8 @@ pub fn bottomPanel(ctx: *GuiContext, opts: Options) !PanelResult {
     return renderPanel(ctx, panel_id, opts, if (opts.resizable) .top else null);
 }
 
-pub fn centerPanel(ctx: *GuiContext, opts: Options) !PanelResult {
-    const panel_id = ctx.id_counter;
-    ctx.id_counter += 1;
+pub fn centerPanel(ctx: *GuiContext, label: []const u8, opts: Options) !PanelResult {
+    const panel_id = id(label);
 
     return renderPanel(ctx, panel_id, opts, null);
 }

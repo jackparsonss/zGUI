@@ -36,7 +36,7 @@ pub fn main() !void {
     defer glfw.glfwDestroyWindow(window);
 
     glfw.glfwMakeContextCurrent(window);
-    glfw.glfwSwapInterval(1); // VSYNC
+    glfw.glfwSwapInterval(0); // VSYNC
 
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) {
@@ -116,7 +116,7 @@ pub fn main() !void {
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height }));
 
         layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 10, .padding = 12, .height = top_panel_height }));
-        _ = try panelWidget.topPanel(&gui, .{ .resizable = false });
+        _ = try panelWidget.topPanel(&gui, "top", .{ .resizable = false });
 
         if (try dropdown.dropdown(&gui, 1, "File", &file_options, .{ .font_size = 16, .padding = 6, .color = 0x546be7FF, .border_radius = 4.0, .font_color = 0xFFFFFFFF })) |index| {
             std.debug.print("File option selected: {s}\n", .{file_options[index]});
@@ -133,7 +133,7 @@ pub fn main() !void {
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
-        const left_panel = try panelWidget.leftPanel(&gui, .{ .resizable = true });
+        const left_panel = try panelWidget.leftPanel(&gui, "left", .{ .resizable = true });
         left_panel_width = left_panel.width;
 
         if (btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
@@ -175,7 +175,7 @@ pub fn main() !void {
             .height = bottom_panel_height,
             .width = center_width,
         }));
-        const bottom_panel = try panelWidget.bottomPanel(&gui, .{ .resizable = true });
+        const bottom_panel = try panelWidget.bottomPanel(&gui, "bottom", .{ .resizable = true });
         bottom_panel_height = bottom_panel.height;
         layout.endLayout(&gui);
 
@@ -183,7 +183,7 @@ pub fn main() !void {
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
         layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
-        const right_panel = try panelWidget.rightPanel(&gui, .{ .resizable = true });
+        const right_panel = try panelWidget.rightPanel(&gui, "right", .{ .resizable = true });
         right_panel_width = right_panel.width;
 
         if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {

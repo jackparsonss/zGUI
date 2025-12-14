@@ -112,9 +112,6 @@ pub const GuiContext = struct {
     window_width: f32, // Current window width
     window_height: f32, // Current window height
 
-    // Widget ID counter (reset each frame for stable IDs)
-    id_counter: u64,
-
     // Track if we're currently resizing to skip expensive UI rebuilding
     is_resizing: bool,
     last_resize_time: f64,
@@ -158,7 +155,6 @@ pub const GuiContext = struct {
             .layout_stack = .empty,
             .next_layout_x = 0.0,
             .next_layout_y = 0.0,
-            .id_counter = 0,
             .is_resizing = false,
             .last_resize_time = 0.0,
             .arrow_cursor = arrow_cursor,
@@ -177,7 +173,6 @@ pub const GuiContext = struct {
         self.current_panel_id = null;
         self.next_layout_x = 0.0;
         self.next_layout_y = 0.0;
-        self.id_counter = 0;
         self.click_consumed = false;
 
         // root layout
