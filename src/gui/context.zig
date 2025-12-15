@@ -82,7 +82,6 @@ pub const GuiContext = struct {
     current_font_texture: u32,
     window: c.Window,
     checkmark_image: Image,
-    chevron_image: Image,
 
     // Active input widget state (only exists when an input is focused)
     active_input_id: ?u64,
@@ -126,7 +125,6 @@ pub const GuiContext = struct {
 
     pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
         const checkmark_image = try Image.load(allocator, "assets/checkmark.png");
-        const chevron_image = try Image.load(allocator, "assets/chevron-down.png");
 
         const arrow_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_ARROW_CURSOR);
         const hresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HRESIZE_CURSOR);
@@ -140,7 +138,6 @@ pub const GuiContext = struct {
             .font_cache = FontCache.init(allocator, "assets/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
             .checkmark_image = checkmark_image,
-            .chevron_image = chevron_image,
             .window = window,
             .window_width = 0.0,
             .window_height = 0.0,
@@ -283,7 +280,6 @@ pub const GuiContext = struct {
         self.draw_list.deinit();
         self.font_cache.deinit();
         self.checkmark_image.deinit();
-        self.chevron_image.deinit();
         self.layout_stack.deinit(self.allocator);
         self.panel_sizes.deinit();
 

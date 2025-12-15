@@ -39,7 +39,7 @@ pub fn collapsibleSection(
 
     try ctx.draw_list.addRoundedRect(header_rect, opts.border_radius, opts.header_color);
 
-    const chevron_x = header_rect.x + opts.padding;
+    const chevron_x = header_rect.x + 12;
     const chevron_y = header_rect.y + (opts.header_height - opts.chevron_size) * 0.5;
 
     const chevron_center_x = chevron_x + opts.chevron_size * 0.5;
