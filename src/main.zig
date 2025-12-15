@@ -7,6 +7,7 @@ const textInput = @import("gui/widgets/input.zig");
 const imageWidget = @import("gui/widgets/image.zig");
 const panelWidget = @import("gui/widgets/panel.zig");
 const dropdown = @import("gui/widgets/dropdown.zig");
+const collapsible = @import("gui/widgets/collapsible.zig");
 const layout = @import("gui/layout.zig");
 const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
 const GuiContext = @import("gui/context.zig").GuiContext;
@@ -36,7 +37,7 @@ pub fn main() !void {
     defer glfw.glfwDestroyWindow(window);
 
     glfw.glfwMakeContextCurrent(window);
-    glfw.glfwSwapInterval(0); // VSYNC
+    glfw.glfwSwapInterval(1); // VSYNC
 
     const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
     if (gl.gladLoadGLLoader(loader) == 0) {
@@ -80,6 +81,9 @@ pub fn main() !void {
 
     var input_buffer: [256]u8 = undefined;
     var input_len: usize = 0;
+
+    var left_section_open = true;
+    var right_section_open = true;
 
     var left_panel_width: f32 = 250;
     var right_panel_width: f32 = 350;
@@ -136,17 +140,20 @@ pub fn main() !void {
         const left_panel = try panelWidget.leftPanel(&gui, "left", .{ .resizable = true });
         left_panel_width = left_panel.width;
 
-        if (btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
-            std.debug.print("Button 'hello world' was clicked!\n", .{});
-        }
-        if (btn.button(&gui, "small text", .{ .font_size = 16, .font_color = 0xFFFFFFFF, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
-            std.debug.print("Button 'small text' was clicked!\n", .{});
-        }
-        if (box and btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
-            std.debug.print("Button 'Large Text' was clicked!\n", .{});
-        }
-        if (try checkbox(&gui, &box, .{})) {
-            std.debug.print("Toggled Checkbox to: {}\n", .{box});
+        if (try collapsible.collapsibleSection(&gui, "Buttons", &left_section_open, .{})) {
+            if (btn.button(&gui, "hello world", .{ .font_size = 24, .color = 0xFFC864FF, .border_radius = 10.0 })) {
+                std.debug.print("Button 'hello world' was clicked!\n", .{});
+            }
+            if (btn.button(&gui, "small text", .{ .font_size = 16, .font_color = 0xFFFFFFFF, .color = 0xC864FFFF, .border_radius = 8.0, .variant = btn.Variant.OUTLINED })) {
+                std.debug.print("Button 'small text' was clicked!\n", .{});
+            }
+            if (box and btn.button(&gui, input_buffer[0..input_len], .{ .font_size = 36, .color = 0x64C8FFFF, .border_radius = 12.0 })) {
+                std.debug.print("Button 'Large Text' was clicked!\n", .{});
+            }
+            if (try checkbox(&gui, &box, .{})) {
+                std.debug.print("Toggled Checkbox to: {}\n", .{box});
+            }
+            layout.endLayout(&gui);
         }
         layout.endLayout(&gui);
 
@@ -186,20 +193,23 @@ pub fn main() !void {
         const right_panel = try panelWidget.rightPanel(&gui, "right", .{ .resizable = true });
         right_panel_width = right_panel.width;
 
-        if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
-            std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
-        }
-        if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
-            std.debug.print("F32 changed: {d}\n", .{f32_value});
-        }
-        if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
-            std.debug.print("F64 changed: {d}\n", .{f64_value});
-        }
-        if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
-            std.debug.print("I32 changed: {d}\n", .{i32_value});
-        }
-        if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
-            std.debug.print("I64 changed: {d}\n", .{i64_value});
+        if (try collapsible.collapsibleSection(&gui, "Inputs", &right_section_open, .{})) {
+            if (try textInput.inputText(&gui, &input_buffer, &input_len, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
+                std.debug.print("Text changed: {s}\n", .{input_buffer[0..input_len]});
+            }
+            if (try textInput.inputNumber(&gui, &f32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
+                std.debug.print("F32 changed: {d}\n", .{f32_value});
+            }
+            if (try textInput.inputNumber(&gui, &f64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
+                std.debug.print("F64 changed: {d}\n", .{f64_value});
+            }
+            if (try textInput.inputNumber(&gui, &i32_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
+                std.debug.print("I32 changed: {d}\n", .{i32_value});
+            }
+            if (try textInput.inputNumber(&gui, &i64_value, .{ .font_size = 20, .color = 0x666666FF, .text_color = 0xFFFFFFFF, .width = 300, .height = 40 })) {
+                std.debug.print("I64 changed: {d}\n", .{i64_value});
+            }
+            layout.endLayout(&gui);
         }
         layout.endLayout(&gui);
 

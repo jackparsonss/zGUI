@@ -159,6 +159,17 @@ pub fn endLayout(ctx: *GuiContext) void {
     const finished_layout = ctx.layout_stack.pop().?;
     const bounds = getBounds(&finished_layout);
 
+    // Update parent layout's position if there is one
+    if (ctx.layout_stack.items.len > 0) {
+        const parent_layout = ctx.getCurrentLayout();
+        // Ensure parent's position is at least at the end of the finished layout
+        // This handles manually positioned nested layouts (like collapsible content)
+        switch (parent_layout.direction) {
+            .VERTICAL => parent_layout.current_y = @max(parent_layout.current_y, bounds.y + bounds.h),
+            .HORIZONTAL => parent_layout.current_x = @max(parent_layout.current_x, bounds.x + bounds.w),
+        }
+    }
+
     if (ctx.current_panel_id) |panel_id| {
         const content_width = switch (finished_layout.direction) {
             .HORIZONTAL => finished_layout.current_x - finished_layout.x + finished_layout.padding,

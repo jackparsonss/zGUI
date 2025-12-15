@@ -295,6 +295,73 @@ pub const DrawList = struct {
         self.updateCurrentCmd();
     }
 
+    /// Add a textured rectangle with rotation around its center
+    /// angle: rotation in radians (positive = counter-clockwise)
+    pub fn addRectUVRotated(
+        self: *DrawList,
+        rect: shapes.Rect,
+        uv_min: [2]f32,
+        uv_max: [2]f32,
+        color: shapes.Color,
+        angle: f32,
+    ) !void {
+        try self.ensureDrawCmd();
+
+        // Calculate center point
+        const cx = rect.x + rect.w * 0.5;
+        const cy = rect.y + rect.h * 0.5;
+
+        // Half dimensions for corners relative to center
+        const half_w = rect.w * 0.5;
+        const half_h = rect.h * 0.5;
+
+        // Precompute rotation
+        const cos_a = @cos(angle);
+        const sin_a = @sin(angle);
+
+        // Apply 2D rotation matrix to each corner
+        // [x'] = [cos(θ)  -sin(θ)] [x] + [cx]
+        // [y']   [sin(θ)   cos(θ)] [y]   [cy]
+
+        // Top-left: (-half_w, -half_h)
+        const tl_x = cx + (-half_w * cos_a - (-half_h) * sin_a);
+        const tl_y = cy + (-half_w * sin_a + (-half_h) * cos_a);
+
+        // Top-right: (half_w, -half_h)
+        const tr_x = cx + (half_w * cos_a - (-half_h) * sin_a);
+        const tr_y = cy + (half_w * sin_a + (-half_h) * cos_a);
+
+        // Bottom-right: (half_w, half_h)
+        const br_x = cx + (half_w * cos_a - half_h * sin_a);
+        const br_y = cy + (half_w * sin_a + half_h * cos_a);
+
+        // Bottom-left: (-half_w, half_h)
+        const bl_x = cx + (-half_w * cos_a - half_h * sin_a);
+        const bl_y = cy + (-half_w * sin_a + half_h * cos_a);
+
+        const rgba = shapes.colorToRGBA(color);
+        const uv1 = uv_min[0];
+        const v1 = uv_min[1];
+        const uv2 = uv_max[0];
+        const v2 = uv_max[1];
+
+        const vtx = [_]shapes.Vertex{
+            .{ .pos = .{ tl_x, tl_y }, .uv = .{ uv1, v1 }, .color = rgba },
+            .{ .pos = .{ tr_x, tr_y }, .uv = .{ uv2, v1 }, .color = rgba },
+            .{ .pos = .{ br_x, br_y }, .uv = .{ uv2, v2 }, .color = rgba },
+            .{ .pos = .{ bl_x, bl_y }, .uv = .{ uv1, v2 }, .color = rgba },
+        };
+
+        const base: u32 = @intCast(self.vertices.items.len);
+        try self.vertices.appendSlice(self.allocator, &vtx);
+
+        try self.indices.appendSlice(self.allocator, &[_]u32{
+            base, base + 1, base + 2,
+            base, base + 2, base + 3,
+        });
+        self.updateCurrentCmd();
+    }
+
     pub fn addText(self: *DrawList, font: *const Font, x: f32, y: f32, text: []const u8, color: shapes.Color) !void {
         var cursor_x = x;
         const cursor_y = y + font.ascent;
