@@ -42,6 +42,10 @@ pub fn button(ctx: *GuiContext, label: []const u8, opts: Options) bool {
     const is_hovered = ctx.input.isMouseInRect(rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked and !ctx.click_consumed;
 
+    if (is_hovered) {
+        ctx.setCursor(ctx.hand_cursor);
+    }
+
     var button_color = opts.color;
     if (is_hovered and ctx.input.mouse_left_pressed) {
         button_color = darkenColor(opts.color, 0.8);

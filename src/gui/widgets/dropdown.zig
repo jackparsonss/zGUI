@@ -54,6 +54,10 @@ pub fn dropdown(
     const button_hovered = ctx.input.isMouseInRect(button_rect);
     const button_clicked = button_hovered and ctx.input.mouse_left_clicked;
 
+    if (button_hovered) {
+        ctx.setCursor(ctx.hand_cursor);
+    }
+
     // Toggle dropdown on button click
     if (button_clicked) {
         if (is_open) {
@@ -134,6 +138,7 @@ pub fn renderDropdownOverlays(ctx: *GuiContext) !void {
 
             // Highlight hovered item
             if (item_hovered) {
+                ctx.setCursor(ctx.hand_cursor);
                 try ctx.draw_list.addRect(item_rect, opts.dropdown_hover_color);
             }
 

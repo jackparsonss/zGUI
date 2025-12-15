@@ -118,6 +118,7 @@ pub const GuiContext = struct {
 
     // Cursor management
     arrow_cursor: ?*glfw.GLFWcursor,
+    hand_cursor: ?*glfw.GLFWcursor,
     hresize_cursor: ?*glfw.GLFWcursor,
     vresize_cursor: ?*glfw.GLFWcursor,
     ibeam_cursor: ?*glfw.GLFWcursor,
@@ -127,6 +128,7 @@ pub const GuiContext = struct {
         const checkmark_image = try Image.load(allocator, "assets/checkmark.png");
 
         const arrow_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_ARROW_CURSOR);
+        const hand_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HAND_CURSOR);
         const hresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HRESIZE_CURSOR);
         const vresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_VRESIZE_CURSOR);
         const ibeam_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_IBEAM_CURSOR);
@@ -158,6 +160,7 @@ pub const GuiContext = struct {
             .is_resizing = false,
             .last_resize_time = 0.0,
             .arrow_cursor = arrow_cursor,
+            .hand_cursor = hand_cursor,
             .hresize_cursor = hresize_cursor,
             .vresize_cursor = vresize_cursor,
             .ibeam_cursor = ibeam_cursor,
@@ -284,6 +287,7 @@ pub const GuiContext = struct {
         self.panel_sizes.deinit();
 
         if (self.arrow_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
+        if (self.hand_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
         if (self.hresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
         if (self.vresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
         if (self.ibeam_cursor) |cursor| glfw.glfwDestroyCursor(cursor);

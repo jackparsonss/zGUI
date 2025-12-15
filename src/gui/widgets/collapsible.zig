@@ -33,6 +33,10 @@ pub fn collapsibleSection(
     const is_hovered = ctx.input.isMouseInRect(header_rect);
     const is_clicked = is_hovered and ctx.input.mouse_left_clicked and !ctx.click_consumed;
 
+    if (is_hovered) {
+        ctx.setCursor(ctx.hand_cursor);
+    }
+
     if (is_clicked) {
         is_open.* = !is_open.*;
     }

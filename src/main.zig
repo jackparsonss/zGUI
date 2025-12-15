@@ -136,7 +136,7 @@ pub fn main() !void {
         layout.beginLayout(&gui, layout.hLayout(&gui, .{ .margin = 0, .padding = 0, .height = gui.window_height - top_panel_height }));
 
         // Left sidebar - vertical layout with buttons and checkbox (left aligned)
-        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = left_panel_width }));
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 0, .padding = 16, .width = left_panel_width }));
         const left_panel = try panelWidget.leftPanel(&gui, "left", .{ .resizable = true });
         left_panel_width = left_panel.width;
 
@@ -189,7 +189,7 @@ pub fn main() !void {
         layout.endLayout(&gui); // End center column vLayout
 
         // Right sidebar - vertical layout with input fields (bottom aligned)
-        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 10, .padding = 20, .width = right_panel_width }));
+        layout.beginLayout(&gui, layout.vLayout(&gui, .{ .margin = 0, .padding = 16, .width = right_panel_width }));
         const right_panel = try panelWidget.rightPanel(&gui, "right", .{ .resizable = true });
         right_panel_width = right_panel.width;
 
