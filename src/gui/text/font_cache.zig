@@ -1,15 +1,18 @@
 const std = @import("std");
 const Font = @import("font.zig").Font;
+const Renderer = @import("../renderer.zig").Renderer;
 
 pub const FontCache = struct {
     allocator: std.mem.Allocator,
     font_path: []const u8,
+    renderer: *Renderer,
     cache: std.AutoHashMap(u32, Font),
 
-    pub fn init(allocator: std.mem.Allocator, font_path: []const u8) FontCache {
+    pub fn init(allocator: std.mem.Allocator, font_path: []const u8, renderer: *Renderer) FontCache {
         return FontCache{
             .allocator = allocator,
             .font_path = font_path,
+            .renderer = renderer,
             .cache = std.AutoHashMap(u32, Font).init(allocator),
         };
     }
@@ -21,7 +24,7 @@ pub const FontCache = struct {
             return font;
         }
 
-        const font = try Font.load(self.allocator, self.font_path, pixel_height);
+        const font = try Font.load(self.allocator, self.renderer, self.font_path, pixel_height);
         try self.cache.put(size_key, font);
 
         return self.cache.getPtr(size_key).?;
@@ -30,7 +33,7 @@ pub const FontCache = struct {
     pub fn deinit(self: *FontCache) void {
         var it = self.cache.valueIterator();
         while (it.next()) |font| {
-            font.deinit();
+            font.deinit(self.renderer);
         }
         self.cache.deinit();
     }

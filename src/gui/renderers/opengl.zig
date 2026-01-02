@@ -4,19 +4,24 @@ const GuiContext = @import("../context.zig").GuiContext;
 const Vertex = @import("../shapes.zig").Vertex;
 const DrawList = @import("../draw_list.zig").DrawList;
 const build_options = @import("build_options");
+const Renderer = @import("../renderer.zig").Renderer;
+const TextureHandle = @import("../renderer.zig").TextureHandle;
+const TextureFormat = @import("../renderer.zig").TextureFormat;
 
 pub const GLRenderer = struct {
     shader: u32,
     vbo: u32,
     ibo: u32,
     vao: u32,
+    allocator: std.mem.Allocator,
 
-    pub fn init() GLRenderer {
+    pub fn init(allocator: std.mem.Allocator) GLRenderer {
         var self = GLRenderer{
             .shader = 0,
             .vbo = 0,
             .ibo = 0,
             .vao = 0,
+            .allocator = allocator,
         };
 
         self.shader = createShader();
@@ -24,7 +29,17 @@ pub const GLRenderer = struct {
         return self;
     }
 
+    pub fn deinit(self: *GLRenderer) void {
+        gl.glDeleteProgram(self.shader);
+        gl.glDeleteBuffers(1, &self.vbo);
+        gl.glDeleteBuffers(1, &self.ibo);
+        gl.glDeleteVertexArrays(1, &self.vao);
+    }
+
     pub fn render(self: *GLRenderer, ctx: *GuiContext, width: i32, height: i32) void {
+        // Clear the screen
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+
         const dl = &ctx.draw_list;
         if (dl.vertices.items.len == 0 or dl.commands.items.len == 0) {
             return;
@@ -68,7 +83,8 @@ pub const GLRenderer = struct {
             // Only bind texture if it's valid (non-zero)
             // Shader handles non-textured geometry via UV coordinates
             if (cmd.texture != 0) {
-                gl.glBindTexture(gl.GL_TEXTURE_2D, cmd.texture);
+                const tex_id: u32 = @intCast(cmd.texture);
+                gl.glBindTexture(gl.GL_TEXTURE_2D, tex_id);
                 checkGlError("glBindTexture");
             }
 
@@ -272,4 +288,88 @@ fn ortho(l: f32, r: f32, b: f32, t: f32, n: f32, f: f32) [16]f32 {
         -(f + n) / fn_,
         1.0,
     };
+}
+
+// Renderer interface wrapper functions
+fn rendererInit(context: *anyopaque) void {
+    _ = context;
+}
+
+fn rendererRender(context: *anyopaque, gui_ctx: *GuiContext, width: i32, height: i32) void {
+    const self: *GLRenderer = @ptrCast(@alignCast(context));
+    self.render(gui_ctx, width, height);
+}
+
+fn rendererCreateTexture(context: *anyopaque, width: i32, height: i32, format: TextureFormat, data: [*]const u8) TextureHandle {
+    _ = context;
+
+    var tex: u32 = 0;
+    gl.glGenTextures(1, &tex);
+    gl.glBindTexture(gl.GL_TEXTURE_2D, tex);
+
+    // Use nearest-neighbor filtering for crisp rendering
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST);
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE);
+
+    const gl_format: c_uint = switch (format) {
+        .r8 => gl.GL_RED,
+        .rgba8 => gl.GL_RGBA,
+    };
+
+    gl.glTexImage2D(
+        gl.GL_TEXTURE_2D,
+        0,
+        @intCast(gl_format),
+        width,
+        height,
+        0,
+        gl_format,
+        gl.GL_UNSIGNED_BYTE,
+        data,
+    );
+
+    return @intCast(tex);
+}
+
+fn rendererDeleteTexture(context: *anyopaque, texture: TextureHandle) void {
+    _ = context;
+    var tex: u32 = @intCast(texture);
+    gl.glDeleteTextures(1, &tex);
+}
+
+fn rendererDeinit(context: *anyopaque) void {
+    const self: *GLRenderer = @ptrCast(@alignCast(context));
+    const allocator = self.allocator;
+    self.deinit();
+    allocator.destroy(self);
+}
+
+/// Create a renderer interface from this OpenGL renderer
+/// The allocator is used to allocate the GLRenderer instance
+/// The window is used to load OpenGL function pointers via GLAD
+pub fn createRenderer(allocator: std.mem.Allocator, window: anytype) !Renderer {
+    // Load OpenGL function pointers
+    const loader: gl.GLADloadproc = @ptrCast(window.getProcAddressFunction());
+    if (gl.gladLoadGLLoader(loader) == 0) {
+        return error.OpenGLLoadFailed;
+    }
+
+    // Set up OpenGL state
+    gl.glEnable(gl.GL_BLEND);
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
+    gl.glClearColor(0.55, 0.55, 0.55, 1.0);
+
+    const gl_renderer = try allocator.create(GLRenderer);
+    gl_renderer.* = GLRenderer.init(allocator);
+
+    return Renderer.init(
+        gl_renderer,
+        rendererInit,
+        rendererRender,
+        rendererCreateTexture,
+        rendererDeleteTexture,
+        rendererDeinit,
+    );
 }

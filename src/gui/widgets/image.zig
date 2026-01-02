@@ -1,9 +1,11 @@
 const std = @import("std");
 const c = @import("../c.zig");
 const stb_image = c.image;
-const gl = c.glad;
 const GuiContext = @import("../context.zig").GuiContext;
 const shapes = @import("../shapes.zig");
+const Renderer = @import("../renderer.zig").Renderer;
+const TextureHandle = @import("../renderer.zig").TextureHandle;
+const TextureFormat = @import("../renderer.zig").TextureFormat;
 
 pub const LoadError = error{
     InvalidImage,
@@ -11,12 +13,12 @@ pub const LoadError = error{
 };
 
 pub const Image = struct {
-    texture: u32,
+    texture: TextureHandle,
     width: i32,
     height: i32,
     channels: i32,
 
-    pub fn load(allocator: std.mem.Allocator, path: []const u8) !Image {
+    pub fn load(allocator: std.mem.Allocator, renderer: *Renderer, path: []const u8) !Image {
         const path_z = try allocator.dupeZ(u8, path);
         defer allocator.free(path_z);
 
@@ -30,26 +32,8 @@ pub const Image = struct {
         }
         defer stb_image.stbi_image_free(data);
 
-        var tex: u32 = 0;
-        gl.glGenTextures(1, &tex);
-        gl.glBindTexture(gl.GL_TEXTURE_2D, tex);
-
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE);
-
-        gl.glTexImage2D(
-            gl.GL_TEXTURE_2D,
-            0,
-            gl.GL_RGBA,
-            width,
-            height,
-            0,
-            gl.GL_RGBA,
-            gl.GL_UNSIGNED_BYTE,
-            data,
-        );
+        // Create texture using the renderer (RGBA format for images)
+        const tex = renderer.createTexture(width, height, .rgba8, data);
 
         return Image{
             .texture = tex,
@@ -59,8 +43,8 @@ pub const Image = struct {
         };
     }
 
-    pub fn deinit(self: *Image) void {
-        gl.glDeleteTextures(1, &self.texture);
+    pub fn deinit(self: *Image, renderer: *Renderer) void {
+        renderer.deleteTexture(self.texture);
     }
 };
 

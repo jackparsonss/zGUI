@@ -1,7 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const GLRenderer = @import("renderers/opengl.zig").GLRenderer;
+const Renderer = @import("renderer.zig").Renderer;
+const TextureHandle = @import("renderer.zig").TextureHandle;
 const FontCache = @import("text/font_cache.zig").FontCache;
 const TextMetrics = @import("text/font.zig").TextMetrics;
 const DrawList = @import("draw_list.zig").DrawList;
@@ -79,7 +80,8 @@ pub const GuiContext = struct {
     draw_list: DrawList,
     input: Input,
     font_cache: FontCache,
-    current_font_texture: u32,
+    current_font_texture: TextureHandle,
+    renderer: *Renderer,
     window: Window,
     checkmark_image: Image,
 
@@ -124,8 +126,8 @@ pub const GuiContext = struct {
     ibeam_cursor: ?*Cursor,
     current_cursor: ?*Cursor,
 
-    pub fn init(allocator: std.mem.Allocator, win: Window) !GuiContext {
-        const checkmark_image = try Image.load(allocator, "assets/checkmark.png");
+    pub fn init(allocator: std.mem.Allocator, win: Window, renderer: *Renderer) !GuiContext {
+        const checkmark_image = try Image.load(allocator, renderer, "assets/checkmark.png");
 
         const arrow_cursor = window.createStandardCursor(.arrow);
         const hand_cursor = window.createStandardCursor(.hand);
@@ -137,8 +139,9 @@ pub const GuiContext = struct {
             .allocator = allocator,
             .draw_list = DrawList.init(allocator),
             .input = Input.init(),
-            .font_cache = FontCache.init(allocator, "assets/RobotoMono-Regular.ttf"),
+            .font_cache = FontCache.init(allocator, "assets/RobotoMono-Regular.ttf", renderer),
             .current_font_texture = 0,
+            .renderer = renderer,
             .checkmark_image = checkmark_image,
             .window = win,
             .window_width = 0.0,
@@ -260,7 +263,7 @@ pub const GuiContext = struct {
         self.input.registerScroll(xoffset, yoffset);
     }
 
-    pub fn render(self: *GuiContext, renderer: *GLRenderer, width: i32, height: i32) void {
+    pub fn render(self: *GuiContext, renderer: *Renderer, width: i32, height: i32) void {
         // Render dropdown overlays on top of everything
         dropdown.renderDropdownOverlays(self) catch {};
 
@@ -282,7 +285,7 @@ pub const GuiContext = struct {
     pub fn deinit(self: *GuiContext) void {
         self.draw_list.deinit();
         self.font_cache.deinit();
-        self.checkmark_image.deinit();
+        self.checkmark_image.deinit(self.renderer);
         self.layout_stack.deinit(self.allocator);
         self.panel_sizes.deinit();
 

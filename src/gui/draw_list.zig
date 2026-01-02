@@ -1,9 +1,10 @@
 const std = @import("std");
 const shapes = @import("shapes.zig");
 const Font = @import("text/font.zig").Font;
+const TextureHandle = @import("renderer.zig").TextureHandle;
 
 pub const DrawCmd = struct {
-    texture: u32,
+    texture: TextureHandle,
     elem_count: u32,
     index_offset: u32,
 };
@@ -13,7 +14,7 @@ pub const DrawList = struct {
     vertices: std.ArrayList(shapes.Vertex),
     indices: std.ArrayList(u32),
     commands: std.ArrayList(DrawCmd),
-    current_texture: u32,
+    current_texture: TextureHandle,
 
     pub fn init(allocator: std.mem.Allocator) DrawList {
         return DrawList{
@@ -32,7 +33,7 @@ pub const DrawList = struct {
         self.current_texture = 0;
     }
 
-    pub fn setTexture(self: *DrawList, texture: u32) !void {
+    pub fn setTexture(self: *DrawList, texture: TextureHandle) !void {
         if (texture != self.current_texture) {
             self.current_texture = texture;
 

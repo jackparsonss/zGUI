@@ -9,15 +9,13 @@ const panelWidget = @import("gui/widgets/panel.zig");
 const dropdown = @import("gui/widgets/dropdown.zig");
 const collapsible = @import("gui/widgets/collapsible.zig");
 const layout = @import("gui/layout.zig");
-const GLRenderer = @import("gui/renderers/opengl.zig").GLRenderer;
+const opengl = @import("gui/renderers/opengl.zig");
 const GuiContext = @import("gui/context.zig").GuiContext;
 const shapes = @import("gui/shapes.zig");
 const input = @import("gui/input.zig");
 const DebugStats = @import("gui/debug_stats.zig").DebugStats;
 const window_mod = @import("gui/window.zig");
 const Window = window_mod.Window;
-const c = @import("gui/c.zig");
-const gl = c.glad;
 
 pub fn main() !void {
     try Window.init();
@@ -29,24 +27,19 @@ pub fn main() !void {
     window.makeContextCurrent();
     Window.setSwapInterval(1); // VSYNC
 
-    const loader: gl.GLADloadproc = @ptrCast(Window.getProcAddressFunction());
-    if (gl.gladLoadGLLoader(loader) == 0) {
-        std.debug.print("Failed to load OpenGL\n", .{});
-        return;
-    }
-
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var renderer = GLRenderer.init();
+    var renderer = try opengl.createRenderer(allocator, Window);
+    defer renderer.deinit();
 
-    var gui = try GuiContext.init(allocator, window);
+    var gui = try GuiContext.init(allocator, window, &renderer);
     defer gui.deinit();
 
     // Load test image
-    var checkmark_img = try imageWidget.Image.load(allocator, "assets/checkmark.png");
-    defer checkmark_img.deinit();
+    var checkmark_img = try imageWidget.Image.load(allocator, &renderer, "assets/checkmark.png");
+    defer checkmark_img.deinit(&renderer);
 
     window.setUserPointer(&gui);
     window.setMouseButtonCallback(input.mouseButtonCallback);
@@ -54,10 +47,6 @@ pub fn main() !void {
     window.setKeyCallback(input.keyCallback);
     window.setScrollCallback(input.scrollCallback);
     window.setFramebufferSizeCallback(input.framebufferSizeCallback);
-
-    gl.glEnable(gl.GL_BLEND);
-    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
-    gl.glClearColor(0.55, 0.55, 0.55, 1.0);
 
     var debug_stats = if (comptime build_options.debug) DebugStats.init() else {};
     defer {
@@ -214,7 +203,6 @@ pub fn main() !void {
             try gui.addText(stats_x, stats_y, stats_text, 20, 0xFFFFFFFF);
         }
 
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.render(&renderer, @intFromFloat(gui.window_width), @intFromFloat(gui.window_height));
 
         if (comptime build_options.debug) {

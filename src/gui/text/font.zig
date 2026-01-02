@@ -1,7 +1,9 @@
 const std = @import("std");
 const c = @import("../c.zig");
 const stb = c.trueType;
-const gl = c.glad;
+const Renderer = @import("../renderer.zig").Renderer;
+const TextureHandle = @import("../renderer.zig").TextureHandle;
+const TextureFormat = @import("../renderer.zig").TextureFormat;
 
 pub const TextMetrics = struct {
     width: f32,
@@ -28,14 +30,14 @@ pub const LoadError = error{
 pub const Font = struct {
     tex_width: i32,
     tex_height: i32,
-    texture: u32,
+    texture: TextureHandle,
     scale: f32,
     ascent: f32,
     descent: f32,
     line_gap: f32,
     glyphs: [256]Glyph,
 
-    pub fn load(allocator: std.mem.Allocator, path: []const u8, pixel_height: f32) !Font {
+    pub fn load(allocator: std.mem.Allocator, renderer: *Renderer, path: []const u8, pixel_height: f32) !Font {
         var file = try std.fs.cwd().openFile(path, .{});
         defer file.close();
 
@@ -93,27 +95,8 @@ pub const Font = struct {
 
         stb.stbtt_PackEnd(&packer);
 
-        var tex: u32 = 0;
-        gl.glGenTextures(1, &tex);
-        gl.glBindTexture(gl.GL_TEXTURE_2D, tex);
-
-        // Use nearest-neighbor filtering for crisp text rendering
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE);
-
-        gl.glTexImage2D(
-            gl.GL_TEXTURE_2D,
-            0,
-            gl.GL_RED,
-            tex_width,
-            tex_height,
-            0,
-            gl.GL_RED,
-            gl.GL_UNSIGNED_BYTE,
-            bitmap.ptr,
-        );
+        // Create texture using the renderer
+        const tex = renderer.createTexture(tex_width, tex_height, .r8, bitmap.ptr);
 
         const tex_width_f: f32 = @floatFromInt(tex_width);
         const tex_height_f: f32 = @floatFromInt(tex_height);
@@ -162,7 +145,7 @@ pub const Font = struct {
         };
     }
 
-    pub fn deinit(self: *Font) void {
-        gl.glDeleteTextures(1, &self.texture);
+    pub fn deinit(self: *Font, renderer: *Renderer) void {
+        renderer.deleteTexture(self.texture);
     }
 };
