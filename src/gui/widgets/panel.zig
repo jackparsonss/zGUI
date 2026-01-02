@@ -3,8 +3,8 @@ const GuiContext = @import("../context.zig").GuiContext;
 const PanelSize = @import("../context.zig").PanelSize;
 const id = @import("utils.zig").id;
 const shapes = @import("../shapes.zig");
-const c = @import("../c.zig");
-const glfw = c.glfw;
+const window = @import("../window.zig");
+const Cursor = window.Cursor;
 
 const highlight_color: shapes.Color = 0x00AAFFFF;
 const border_width: f32 = 10.0;
@@ -60,7 +60,7 @@ fn getHighlightRect(rect: shapes.Rect, border: ResizeBorder) shapes.Rect {
     };
 }
 
-fn getCursor(ctx: *GuiContext, border: ResizeBorder) ?*glfw.GLFWcursor {
+fn getCursor(ctx: *GuiContext, border: ResizeBorder) ?*Cursor {
     return switch (border) {
         .left, .right => ctx.hresize_cursor,
         .top, .bottom => ctx.vresize_cursor,

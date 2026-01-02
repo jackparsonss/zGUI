@@ -3,8 +3,8 @@ const std = @import("std");
 const GuiContext = @import("../context.zig").GuiContext;
 const ActiveInputState = @import("../context.zig").ActiveInputState;
 const shapes = @import("../shapes.zig");
-const c = @import("../c.zig");
-const glfw = c.glfw;
+const window = @import("../window.zig");
+const Key = window.Key;
 
 pub const InputOptions = struct {
     font_size: f32 = 24,
@@ -115,7 +115,7 @@ pub fn moveMousePosition(ctx: *GuiContext, state: *ActiveInputState, buffer: []u
     }
 
     state.cursor_pos = closest_pos;
-    state.cursor_blink_time = glfw.glfwGetTime();
+    state.cursor_blink_time = window.getTime();
 }
 
 fn inputInternal(
@@ -204,11 +204,11 @@ fn inputInternal(
                 state.cursor_pos += 1;
                 buffer_len.* += 1;
                 text_changed = true;
-                state.cursor_blink_time = glfw.glfwGetTime();
+                state.cursor_blink_time = window.getTime();
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_BACKSPACE)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.backspace))) {
             if (hasSelection(&state, state.cursor_pos)) {
                 if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                     const bytes_to_remove = range.end - range.start;
@@ -217,18 +217,18 @@ fn inputInternal(
                     state.cursor_pos = range.start;
                     state.selection_start = null;
                     text_changed = true;
-                    state.cursor_blink_time = glfw.glfwGetTime();
+                    state.cursor_blink_time = window.getTime();
                 }
             } else if (state.cursor_pos > 0) {
                 std.mem.copyForwards(u8, buffer[state.cursor_pos - 1 .. buffer_len.* - 1], buffer[state.cursor_pos..buffer_len.*]);
                 state.cursor_pos -= 1;
                 buffer_len.* -= 1;
                 text_changed = true;
-                state.cursor_blink_time = glfw.glfwGetTime();
+                state.cursor_blink_time = window.getTime();
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_DELETE)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.delete))) {
             if (hasSelection(&state, state.cursor_pos)) {
                 if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                     const bytes_to_remove = range.end - range.start;
@@ -237,17 +237,17 @@ fn inputInternal(
                     state.cursor_pos = range.start;
                     state.selection_start = null;
                     text_changed = true;
-                    state.cursor_blink_time = glfw.glfwGetTime();
+                    state.cursor_blink_time = window.getTime();
                 }
             } else if (state.cursor_pos < buffer_len.*) {
                 std.mem.copyForwards(u8, buffer[state.cursor_pos .. buffer_len.* - 1], buffer[state.cursor_pos + 1 .. buffer_len.*]);
                 buffer_len.* -= 1;
                 text_changed = true;
-                state.cursor_blink_time = glfw.glfwGetTime();
+                state.cursor_blink_time = window.getTime();
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_LEFT)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.left))) {
             if (ctx.input.shift_pressed and state.selection_start == null) {
                 state.selection_start = state.cursor_pos;
             }
@@ -268,14 +268,14 @@ fn inputInternal(
             }
 
             state.cursor_pos = new_pos;
-            state.cursor_blink_time = glfw.glfwGetTime();
+            state.cursor_blink_time = window.getTime();
 
             if (!ctx.input.shift_pressed) {
                 state.selection_start = null;
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_RIGHT)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.right))) {
             if (ctx.input.shift_pressed and state.selection_start == null) {
                 state.selection_start = state.cursor_pos;
             }
@@ -296,89 +296,74 @@ fn inputInternal(
             }
 
             state.cursor_pos = new_pos;
-            state.cursor_blink_time = glfw.glfwGetTime();
+            state.cursor_blink_time = window.getTime();
 
             if (!ctx.input.shift_pressed) {
                 state.selection_start = null;
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_HOME)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.home))) {
             if (ctx.input.shift_pressed and state.selection_start == null) {
                 state.selection_start = state.cursor_pos;
             }
             state.cursor_pos = 0;
-            state.cursor_blink_time = glfw.glfwGetTime();
+            state.cursor_blink_time = window.getTime();
             if (!ctx.input.shift_pressed) {
                 state.selection_start = null;
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_END)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.end))) {
             if (ctx.input.shift_pressed and state.selection_start == null) {
                 state.selection_start = state.cursor_pos;
             }
             state.cursor_pos = buffer_len.*;
-            state.cursor_blink_time = glfw.glfwGetTime();
+            state.cursor_blink_time = window.getTime();
             if (!ctx.input.shift_pressed) {
                 state.selection_start = null;
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_V) and ctx.input.primary_pressed) {
-            const content = glfw.glfwGetClipboardString(ctx.window);
-            if (content != null) {
-                const len = std.mem.len(content);
-                const slice = content[0..len];
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.v)) and ctx.input.primary_pressed) {
+            const content = ctx.window.getClipboardString();
+            const len = std.mem.len(content);
+            const slice = content[0..len];
 
-                if (hasSelection(&state, state.cursor_pos)) {
-                    if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
-                        const bytes_to_remove = range.end - range.start;
-                        std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
-                        buffer_len.* -= bytes_to_remove;
-                        state.cursor_pos = range.start;
-                        state.selection_start = null;
-                        text_changed = true;
-                    }
-                }
-
-                if (buffer_len.* + len <= buffer.len) {
-                    if (state.cursor_pos < buffer_len.*) {
-                        std.mem.copyBackwards(
-                            u8,
-                            buffer[state.cursor_pos + len .. buffer_len.* + len],
-                            buffer[state.cursor_pos..buffer_len.*],
-                        );
-                    }
-
-                    std.mem.copyForwards(
-                        u8,
-                        buffer[state.cursor_pos .. state.cursor_pos + len],
-                        slice,
-                    );
-
-                    state.cursor_pos += len;
-                    buffer_len.* += len;
+            if (hasSelection(&state, state.cursor_pos)) {
+                if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
+                    const bytes_to_remove = range.end - range.start;
+                    std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
+                    buffer_len.* -= bytes_to_remove;
+                    state.cursor_pos = range.start;
+                    state.selection_start = null;
                     text_changed = true;
-                    state.cursor_blink_time = glfw.glfwGetTime();
                 }
             }
-        }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_C) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
-            if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
-                const content = buffer[range.start..range.end];
+            if (buffer_len.* + len <= buffer.len) {
+                if (state.cursor_pos < buffer_len.*) {
+                    std.mem.copyBackwards(
+                        u8,
+                        buffer[state.cursor_pos + len .. buffer_len.* + len],
+                        buffer[state.cursor_pos..buffer_len.*],
+                    );
+                }
 
-                var buf: [4096:0]u8 = undefined;
-                const copy_len = @min(content.len, buf.len - 1);
-                @memcpy(buf[0..copy_len], content[0..copy_len]);
-                buf[copy_len] = 0;
+                std.mem.copyForwards(
+                    u8,
+                    buffer[state.cursor_pos .. state.cursor_pos + len],
+                    slice,
+                );
 
-                glfw.glfwSetClipboardString(ctx.window, &buf);
+                state.cursor_pos += len;
+                buffer_len.* += len;
+                text_changed = true;
+                state.cursor_blink_time = window.getTime();
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_X) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.c)) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
             if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
                 const content = buffer[range.start..range.end];
 
@@ -387,7 +372,20 @@ fn inputInternal(
                 @memcpy(buf[0..copy_len], content[0..copy_len]);
                 buf[copy_len] = 0;
 
-                glfw.glfwSetClipboardString(ctx.window, &buf);
+                ctx.window.setClipboardString(&buf);
+            }
+        }
+
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.x)) and ctx.input.primary_pressed and hasSelection(&state, state.cursor_pos)) {
+            if (getSelectionRange(&state, state.cursor_pos, buffer_len.*)) |range| {
+                const content = buffer[range.start..range.end];
+
+                var buf: [4096:0]u8 = undefined;
+                const copy_len = @min(content.len, buf.len - 1);
+                @memcpy(buf[0..copy_len], content[0..copy_len]);
+                buf[copy_len] = 0;
+
+                ctx.window.setClipboardString(&buf);
 
                 const bytes_to_remove = range.end - range.start;
                 std.mem.copyForwards(u8, buffer[range.start .. buffer_len.* - bytes_to_remove], buffer[range.end..buffer_len.*]);
@@ -395,15 +393,15 @@ fn inputInternal(
                 state.cursor_pos = range.start;
                 state.selection_start = null;
                 text_changed = true;
-                state.cursor_blink_time = glfw.glfwGetTime();
+                state.cursor_blink_time = window.getTime();
             }
         }
 
-        if (ctx.input.isKeyJustPressed(glfw.GLFW_KEY_A) and ctx.input.primary_pressed) {
+        if (ctx.input.isKeyJustPressed(@intFromEnum(Key.a)) and ctx.input.primary_pressed) {
             if (buffer_len.* > 0) {
                 state.selection_start = 0;
                 state.cursor_pos = buffer_len.*;
-                state.cursor_blink_time = glfw.glfwGetTime();
+                state.cursor_blink_time = window.getTime();
             }
         }
     }
@@ -492,7 +490,7 @@ fn inputInternal(
     }
 
     if (is_active) {
-        const current_time = glfw.glfwGetTime();
+        const current_time = window.getTime();
         const elapsed = current_time - state.cursor_blink_time;
         const blink_cycle = @mod(elapsed, 1.0);
 

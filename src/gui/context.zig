@@ -13,9 +13,9 @@ const Direction = layout.Direction;
 const Layout = layout.Layout;
 const dropdown = @import("widgets/dropdown.zig");
 const DropdownOverlay = dropdown.DropdownOverlay;
-const c = @import("c.zig");
-const Window = c.Window;
-const glfw = c.glfw;
+const window = @import("window.zig");
+const Window = window.Window;
+const Cursor = window.Cursor;
 
 pub const ActiveInputState = struct {
     cursor_pos: usize,
@@ -80,7 +80,7 @@ pub const GuiContext = struct {
     input: Input,
     font_cache: FontCache,
     current_font_texture: u32,
-    window: c.Window,
+    window: Window,
     checkmark_image: Image,
 
     // Active input widget state (only exists when an input is focused)
@@ -117,21 +117,21 @@ pub const GuiContext = struct {
     last_resize_time: f64,
 
     // Cursor management
-    arrow_cursor: ?*glfw.GLFWcursor,
-    hand_cursor: ?*glfw.GLFWcursor,
-    hresize_cursor: ?*glfw.GLFWcursor,
-    vresize_cursor: ?*glfw.GLFWcursor,
-    ibeam_cursor: ?*glfw.GLFWcursor,
-    current_cursor: ?*glfw.GLFWcursor,
+    arrow_cursor: ?*Cursor,
+    hand_cursor: ?*Cursor,
+    hresize_cursor: ?*Cursor,
+    vresize_cursor: ?*Cursor,
+    ibeam_cursor: ?*Cursor,
+    current_cursor: ?*Cursor,
 
-    pub fn init(allocator: std.mem.Allocator, window: c.Window) !GuiContext {
+    pub fn init(allocator: std.mem.Allocator, win: Window) !GuiContext {
         const checkmark_image = try Image.load(allocator, "assets/checkmark.png");
 
-        const arrow_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_ARROW_CURSOR);
-        const hand_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HAND_CURSOR);
-        const hresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_HRESIZE_CURSOR);
-        const vresize_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_VRESIZE_CURSOR);
-        const ibeam_cursor = glfw.glfwCreateStandardCursor(glfw.GLFW_IBEAM_CURSOR);
+        const arrow_cursor = window.createStandardCursor(.arrow);
+        const hand_cursor = window.createStandardCursor(.hand);
+        const hresize_cursor = window.createStandardCursor(.hresize);
+        const vresize_cursor = window.createStandardCursor(.vresize);
+        const ibeam_cursor = window.createStandardCursor(.ibeam);
 
         const ctx = GuiContext{
             .allocator = allocator,
@@ -140,7 +140,7 @@ pub const GuiContext = struct {
             .font_cache = FontCache.init(allocator, "assets/RobotoMono-Regular.ttf"),
             .current_font_texture = 0,
             .checkmark_image = checkmark_image,
-            .window = window,
+            .window = win,
             .window_width = 0.0,
             .window_height = 0.0,
             .active_input_id = null,
@@ -184,7 +184,7 @@ pub const GuiContext = struct {
             .width = self.window_width,
         })) catch {};
 
-        const current_time = glfw.glfwGetTime();
+        const current_time = window.getTime();
         if (self.is_resizing and (current_time - self.last_resize_time) > 0.05) {
             self.is_resizing = false;
         }
@@ -192,8 +192,8 @@ pub const GuiContext = struct {
         self.setCursor(self.arrow_cursor);
     }
 
-    pub fn updateInput(self: *GuiContext, window: Window) void {
-        self.input.update(window);
+    pub fn updateInput(self: *GuiContext, win: Window) void {
+        self.input.update(win);
 
         // Consume clicks if they're over an active dropdown overlay
         self.consumeOverlayClicks();
@@ -222,15 +222,15 @@ pub const GuiContext = struct {
     }
 
     pub fn handleMouseButton(self: *GuiContext, button: c_int, action: c_int) void {
-        if (action != glfw.GLFW_PRESS) {
+        if (action != @intFromEnum(window.KeyAction.press)) {
             return;
         }
 
-        if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) {
+        if (button == @intFromEnum(window.MouseButton.left)) {
             self.input.registerMouseClick();
-        } else if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) {
+        } else if (button == @intFromEnum(window.MouseButton.right)) {
             self.input.registerRightClick();
-        } else if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) {
+        } else if (button == @intFromEnum(window.MouseButton.middle)) {
             self.input.registerMiddleClick();
         }
     }
@@ -244,10 +244,10 @@ pub const GuiContext = struct {
     }
 
     pub fn handleModifiers(self: *GuiContext, mods: c_int) void {
-        self.input.ctrl_pressed = (mods & glfw.GLFW_MOD_CONTROL) != 0;
-        self.input.alt_pressed = (mods & glfw.GLFW_MOD_ALT) != 0;
-        self.input.super_pressed = (mods & glfw.GLFW_MOD_SUPER) != 0;
-        self.input.shift_pressed = (mods & glfw.GLFW_MOD_SHIFT) != 0;
+        self.input.ctrl_pressed = window.hasModifier(mods, .control);
+        self.input.alt_pressed = window.hasModifier(mods, .alt);
+        self.input.super_pressed = window.hasModifier(mods, .super);
+        self.input.shift_pressed = window.hasModifier(mods, .shift);
 
         if (comptime builtin.target.os.tag == .macos) {
             self.input.primary_pressed = self.input.super_pressed;
@@ -286,11 +286,11 @@ pub const GuiContext = struct {
         self.layout_stack.deinit(self.allocator);
         self.panel_sizes.deinit();
 
-        if (self.arrow_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
-        if (self.hand_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
-        if (self.hresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
-        if (self.vresize_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
-        if (self.ibeam_cursor) |cursor| glfw.glfwDestroyCursor(cursor);
+        window.destroyCursor(self.arrow_cursor);
+        window.destroyCursor(self.hand_cursor);
+        window.destroyCursor(self.hresize_cursor);
+        window.destroyCursor(self.vresize_cursor);
+        window.destroyCursor(self.ibeam_cursor);
     }
 
     pub fn getCurrentLayout(self: *GuiContext) *Layout {
@@ -305,7 +305,7 @@ pub const GuiContext = struct {
         self.window_width = width;
         self.window_height = height;
         self.is_resizing = true;
-        self.last_resize_time = glfw.glfwGetTime();
+        self.last_resize_time = window.getTime();
     }
 
     pub fn updateLayoutPos(self: *GuiContext, bounds: shapes.Rect) void {
@@ -313,9 +313,9 @@ pub const GuiContext = struct {
         self.next_layout_y = bounds.y + bounds.h;
     }
 
-    pub fn setCursor(self: *GuiContext, cursor: ?*glfw.GLFWcursor) void {
+    pub fn setCursor(self: *GuiContext, cursor: ?*Cursor) void {
         if (self.current_cursor != cursor) {
-            glfw.glfwSetCursor(self.window, cursor);
+            self.window.setCursor(cursor);
             self.current_cursor = cursor;
         }
     }

@@ -14,32 +14,22 @@ const GuiContext = @import("gui/context.zig").GuiContext;
 const shapes = @import("gui/shapes.zig");
 const input = @import("gui/input.zig");
 const DebugStats = @import("gui/debug_stats.zig").DebugStats;
+const window_mod = @import("gui/window.zig");
+const Window = window_mod.Window;
 const c = @import("gui/c.zig");
-const glfw = c.glfw;
 const gl = c.glad;
 
 pub fn main() !void {
-    if (glfw.glfwInit() == 0) {
-        std.debug.print("Failed to initialize GLFW\n", .{});
-        return;
-    }
-    defer glfw.glfwTerminate();
+    try Window.init();
+    defer Window.deinit();
 
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
+    const window = try Window.create(1920, 1080, "zgui");
+    defer window.destroy();
 
-    const window = glfw.glfwCreateWindow(1920, 1080, "zgui", null, null);
-    if (window == null) {
-        std.debug.print("Failed to create window", .{});
-        return;
-    }
-    defer glfw.glfwDestroyWindow(window);
+    window.makeContextCurrent();
+    Window.setSwapInterval(1); // VSYNC
 
-    glfw.glfwMakeContextCurrent(window);
-    glfw.glfwSwapInterval(1); // VSYNC
-
-    const loader: gl.GLADloadproc = @ptrCast(&glfw.glfwGetProcAddress);
+    const loader: gl.GLADloadproc = @ptrCast(Window.getProcAddressFunction());
     if (gl.gladLoadGLLoader(loader) == 0) {
         std.debug.print("Failed to load OpenGL\n", .{});
         return;
@@ -58,12 +48,12 @@ pub fn main() !void {
     var checkmark_img = try imageWidget.Image.load(allocator, "assets/checkmark.png");
     defer checkmark_img.deinit();
 
-    glfw.glfwSetWindowUserPointer(window, &gui);
-    _ = glfw.glfwSetMouseButtonCallback(window, input.mouseButtonCallback);
-    _ = glfw.glfwSetCharCallback(window, input.charCallback);
-    _ = glfw.glfwSetKeyCallback(window, input.keyCallback);
-    _ = glfw.glfwSetScrollCallback(window, input.scrollCallback);
-    _ = glfw.glfwSetFramebufferSizeCallback(window, input.framebufferSizeCallback);
+    window.setUserPointer(&gui);
+    window.setMouseButtonCallback(input.mouseButtonCallback);
+    window.setCharCallback(input.charCallback);
+    window.setKeyCallback(input.keyCallback);
+    window.setScrollCallback(input.scrollCallback);
+    window.setFramebufferSizeCallback(input.framebufferSizeCallback);
 
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
@@ -96,20 +86,20 @@ pub fn main() !void {
 
     var fb_width: i32 = 0;
     var fb_height: i32 = 0;
-    glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
+    window.getFramebufferSize(&fb_width, &fb_height);
     gui.setWindowSize(@floatFromInt(fb_width), @floatFromInt(fb_height));
 
     const file_options = [_][]const u8{ "New", "Open", "Save", "Save As", "Exit" };
     const menu_options = [_][]const u8{ "Preferences", "Settings", "About" };
     const top_panel_height: f32 = 40;
 
-    while (glfw.glfwWindowShouldClose(window) == 0) {
+    while (!window.shouldClose()) {
         if (comptime build_options.debug) {
-            debug_stats.beginFrame(glfw.glfwGetTime());
+            debug_stats.beginFrame(window_mod.getTime());
         }
 
         gui.newFrame();
-        glfw.glfwPollEvents();
+        Window.pollEvents();
         gui.updateInput(window);
         if (gui.is_resizing) {
             continue;
@@ -231,9 +221,9 @@ pub fn main() !void {
             debug_stats.endFrame();
         }
 
-        glfw.glfwSwapBuffers(window);
+        window.swapBuffers();
     }
 
-    // Process any remaining events to prevent crash on glfwTerminate
-    glfw.glfwPollEvents();
+    // Process any remaining events
+    Window.pollEvents();
 }

@@ -2,30 +2,33 @@ const std = @import("std");
 
 const GuiContext = @import("context.zig").GuiContext;
 const shapes = @import("shapes.zig");
+const window_mod = @import("window.zig");
+const Window = window_mod.Window;
 const c = @import("c.zig");
-const Window = c.Window;
-const glfw = c.glfw;
 
-pub fn mouseButtonCallback(window: c.Window, btn: c_int, action: c_int, mods: c_int) callconv(.c) void {
+pub fn mouseButtonCallback(window_handle: c.Window, btn: c_int, action: c_int, mods: c_int) callconv(.c) void {
     _ = mods;
-    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    const win = Window{ .handle = window_handle.? };
+    const gui_ptr = win.getUserPointer();
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.handleMouseButton(btn, action);
     }
 }
 
-pub fn charCallback(window: c.Window, codepoint: c_uint) callconv(.c) void {
-    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+pub fn charCallback(window_handle: c.Window, codepoint: c_uint) callconv(.c) void {
+    const win = Window{ .handle = window_handle.? };
+    const gui_ptr = win.getUserPointer();
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.handleChar(codepoint);
     }
 }
 
-pub fn keyCallback(window: c.Window, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
+pub fn keyCallback(window_handle: c.Window, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.c) void {
     _ = scancode;
-    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+    const win = Window{ .handle = window_handle.? };
+    const gui_ptr = win.getUserPointer();
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.handleKey(key, action);
@@ -33,16 +36,18 @@ pub fn keyCallback(window: c.Window, key: c_int, scancode: c_int, action: c_int,
     }
 }
 
-pub fn scrollCallback(window: c.Window, xoffset: f64, yoffset: f64) callconv(.c) void {
-    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+pub fn scrollCallback(window_handle: c.Window, xoffset: f64, yoffset: f64) callconv(.c) void {
+    const win = Window{ .handle = window_handle.? };
+    const gui_ptr = win.getUserPointer();
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.handleScroll(xoffset, yoffset);
     }
 }
 
-pub fn framebufferSizeCallback(window: c.Window, width: c_int, height: c_int) callconv(.c) void {
-    const gui_ptr = glfw.glfwGetWindowUserPointer(window);
+pub fn framebufferSizeCallback(window_handle: c.Window, width: c_int, height: c_int) callconv(.c) void {
+    const win = Window{ .handle = window_handle.? };
+    const gui_ptr = win.getUserPointer();
     if (gui_ptr != null) {
         const gui: *GuiContext = @ptrCast(@alignCast(gui_ptr));
         gui.setWindowSize(@floatFromInt(width), @floatFromInt(height));
@@ -137,31 +142,26 @@ pub const Input = struct {
         self.scroll_y += yoffset;
     }
 
-    pub fn update(self: *Input, window: Window) void {
+    pub fn update(self: *Input, win: Window) void {
         var window_x: f64 = 0;
         var window_y: f64 = 0;
-        glfw.glfwGetCursorPos(window, &window_x, &window_y);
+        win.getCursorPos(&window_x, &window_y);
 
         var window_width: i32 = 0;
         var window_height: i32 = 0;
         var fb_width: i32 = 0;
         var fb_height: i32 = 0;
-        glfw.glfwGetWindowSize(window, &window_width, &window_height);
-        glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
+        win.getSize(&window_width, &window_height);
+        win.getFramebufferSize(&fb_width, &fb_height);
 
         const scale_x = @as(f64, @floatFromInt(fb_width)) / @as(f64, @floatFromInt(window_width));
         const scale_y = @as(f64, @floatFromInt(fb_height)) / @as(f64, @floatFromInt(window_height));
         self.cursor_x = window_x * scale_x;
         self.cursor_y = window_y * scale_y;
 
-        const left_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_LEFT);
-        self.mouse_left_pressed = (left_state == glfw.GLFW_PRESS);
-
-        const right_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_RIGHT);
-        self.mouse_right_pressed = (right_state == glfw.GLFW_PRESS);
-
-        const middle_state = glfw.glfwGetMouseButton(window, glfw.GLFW_MOUSE_BUTTON_MIDDLE);
-        self.mouse_middle_pressed = (middle_state == glfw.GLFW_PRESS);
+        self.mouse_left_pressed = win.getMouseButton(.left) == .pressed;
+        self.mouse_right_pressed = win.getMouseButton(.right) == .pressed;
+        self.mouse_middle_pressed = win.getMouseButton(.middle) == .pressed;
     }
 
     pub fn isMouseInRect(self: *const Input, rect: shapes.Rect) bool {
@@ -180,10 +180,14 @@ pub const Input = struct {
     pub fn registerKey(self: *Input, key: c_int, action: c_int) void {
         if (key >= 0 and key < 512) {
             const key_idx: usize = @intCast(key);
-            if (action == glfw.GLFW_PRESS or action == glfw.GLFW_REPEAT) {
+            const press_val = @intFromEnum(window_mod.KeyAction.press);
+            const repeat_val = @intFromEnum(window_mod.KeyAction.repeat);
+            const release_val = @intFromEnum(window_mod.KeyAction.release);
+
+            if (action == press_val or action == repeat_val) {
                 self.keys_just_pressed[key_idx] = true;
                 self.keys_pressed[key_idx] = true;
-            } else if (action == glfw.GLFW_RELEASE) {
+            } else if (action == release_val) {
                 self.keys_pressed[key_idx] = false;
             }
         }
